@@ -182,7 +182,7 @@ export interface Transaction {
   clientId: string | null;
   fundedAmount: number;
   platformUserId: string;
-  platformResponse: any; // json object
+  platformResponse: Record<string, unknown>; // json object
   fundedAt: string;
 }
 
@@ -209,12 +209,12 @@ export interface BankParserConfig {
   paymentMethod: PaymentMethod;
 
   smsPattern: string | null;
-  screenshotHints: any;
+  screenshotHints: Record<string, unknown> | null;
   linkPattern: string | null;
 
   crawlUrlTemplate: string;
   crawlResponseType: CrawlResponseType;
-  crawlFieldMappings: any;
+  crawlFieldMappings: Record<string, unknown>;
 
   isActive: boolean;
   updatedAt: string;

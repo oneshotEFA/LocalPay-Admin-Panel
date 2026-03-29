@@ -12,7 +12,7 @@ export const mockClientProfile: GatewayClient & {
   name: "PayerOne Ethiopia",
   slug: "payerone",
   logoUrl: "https://ui-avatars.com/api/?name=Payer+One&background=random",
-  webhookUrl: "https://api.payerone.com/v1/habesha-webhook",
+  webhookUrl: "https://api.localbankpv.com/v1/webhook",
   isActive: true,
   createdAt: "2023-01-15T10:00:00Z",
   updatedAt: "2024-03-29T10:00:00Z",

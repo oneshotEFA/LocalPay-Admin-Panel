@@ -56,9 +56,13 @@ export default async function DepositDetailPage({ params }: { params: { depositI
 
   const isRejected = deposit.status.includes("REJECTED");
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB" }).format(amount);
-  };
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB" }).format(amount);
+};
+
+function generateStaticParams() {
+  return mockDeposits.map((deposit) => ({ depositId: deposit.id }));
+}
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
@@ -204,7 +208,7 @@ export default async function DepositDetailPage({ params }: { params: { depositI
               <div className="text-center py-10 px-6">
                 <Clock className="w-8 h-8 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-600 font-medium text-sm">Verifications pending.</p>
-                <p className="text-slate-400 text-xs mt-1">Our system hasn't run automated checks yet.</p>
+                <p className="text-slate-400 text-xs mt-1">Our system hasn&apos;t run automated checks yet.</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 w-full overflow-hidden">

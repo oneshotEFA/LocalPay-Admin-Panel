@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -14,7 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 
-export function Sidebar() {
+export function Sidebar({ className, isMobile, onClose }: { className?: string; isMobile?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
 
   const navItems = [
@@ -26,12 +27,35 @@ export function Sidebar() {
     { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
   ];
 
+  const baseClasses = cn(
+    "flex flex-col pt-6 bg-white border border-slate-200",
+    isMobile ? "relative w-64" : "fixed inset-y-0 left-0 w-64 border-r z-10",
+    className
+  );
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-10 w-64 border-r border-slate-200 bg-white flex flex-col pt-6">
-      <div className="px-6 mb-8 mt-2">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Local Bank Payment Verification</h1>
-        <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1">Client Portal</p>
-      </div>
+    <aside className={baseClasses}>
+      {isMobile ? (
+        <div className="px-6 mb-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">Local Bank Payment Verification</h1>
+            <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1">Client Portal</p>
+          </div>
+          <button
+            type="button"
+            className="text-slate-500 hover:text-slate-700"
+            onClick={onClose}
+            aria-label="Close navigation"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      ) : (
+        <div className="px-6 mb-8 mt-2">
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Local Bank Payment Verification</h1>
+          <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase mt-1">Client Portal</p>
+        </div>
+      )}
 
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {navItems.map((item) => {

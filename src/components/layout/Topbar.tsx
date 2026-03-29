@@ -2,10 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { mockClientProfile } from "@/lib/mock/client";
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
 import Image from "next/image";
 
-export function Topbar() {
+export function Topbar({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
   const pathname = usePathname();
 
   // Simple title generator from pathname
@@ -21,8 +21,16 @@ export function Topbar() {
   };
 
   return (
-    <header className="sticky top-0 z-10 w-full h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md px-8 flex items-center justify-between">
-      <div>
+    <header className="sticky top-0 z-10 w-full h-16 border-b border-slate-200 bg-white/80 backdrop-blur-md px-4 sm:px-8 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          className="md:hidden text-slate-500 hover:text-slate-700"
+          onClick={onOpenSidebar}
+          aria-label="Open navigation"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         <h2 className="text-xl font-semibold text-slate-800 tracking-tight">
           {getPageTitle()}
         </h2>
@@ -48,6 +56,7 @@ export function Topbar() {
               <img
                 src={mockClientProfile.logoUrl}
                 alt="Client Logo"
+         
                 className="h-full w-full object-cover"
               />
             ) : (

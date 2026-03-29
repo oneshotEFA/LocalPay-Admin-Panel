@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { mockCheckouts } from "@/lib/mock/data";
@@ -72,7 +72,7 @@ export default function CheckoutsPage() {
             placeholder="Search by ID, invoice, or email..." 
             className="pl-9 bg-white border-slate-200 shadow-sm"
             value={searchTerm}
-            onChange={(e:any) => setSearchTerm(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">

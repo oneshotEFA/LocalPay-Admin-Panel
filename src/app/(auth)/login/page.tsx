@@ -20,7 +20,7 @@ export default function LoginPage() {
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     // Set mock cookie
-    document.cookie = "habesha_session=mock_token_123; path=/";
+    document.cookie = "localbank_session=mock_token_123; path=/";
     
     router.push("/");
   };
@@ -76,7 +76,7 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </Button>
             <p className="text-xs text-center text-slate-500">
-              For integration support, contact <a href="mailto:support@habeshaunlocker.com" className="text-slate-900 underline underline-offset-2">support</a>
+              For integration support, contact <a href="mailto:support@localbankpv.com" className="text-slate-900 underline underline-offset-2">support</a>
             </p>
           </CardFooter>
         </form>
