@@ -5,88 +5,84 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { mockCheckouts } from "@/lib/mock/data";
 import { CheckoutStatus } from "@/lib/types";
-
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Filter, Calendar as CalendarIcon, ArrowUpRight } from "lucide-react";
+import { Search, Calendar, ArrowUpRight, CheckCircle2, Clock, XCircle, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+// import { useCheckouts } from "@/lib/api"; // ← connect when ready
 
+const fmt = (n: number) => new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB", maximumFractionDigits: 0 }).format(n);
+
+const STATUS_META: Record<string, { label: string; cls: string; icon: React.ElementType }> = {
+  PAID:      { label: "Paid",      cls: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  PENDING:   { label: "Pending",   cls: "bg-amber-50  text-amber-700  border-amber-200",   icon: Clock },
+  FAILED:    { label: "Failed",    cls: "bg-rose-50   text-rose-700   border-rose-200",    icon: XCircle },
+  EXPIRED:   { label: "Expired",   cls: "bg-rose-50   text-rose-700   border-rose-200",    icon: XCircle },
+  CANCELLED: { label: "Cancelled", cls: "bg-slate-100 text-slate-600  border-slate-200",   icon: XCircle },
+};
 
 export default function CheckoutsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  const filteredCheckouts = mockCheckouts.filter(chk => {
-    const matchesSearch = chk.id.includes(searchTerm) || chk.invoiceId.toLowerCase().includes(searchTerm.toLowerCase()) || chk.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "ALL" || chk.status === statusFilter;
-    return matchesSearch && matchesStatus;
+  const filtered = mockCheckouts.filter((chk) => {
+    const matchSearch =
+      chk.id.toLowerCase().includes(search.toLowerCase()) ||
+      chk.invoiceId.toLowerCase().includes(search.toLowerCase()) ||
+      chk.customerEmail.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "ALL" || chk.status === statusFilter;
+    return matchSearch && matchStatus;
   });
 
   const getStatusBadge = (status: CheckoutStatus) => {
-    switch (status) {
-      case CheckoutStatus.PAID:
-        return <Badge className="bg-emerald-100 text-emerald-800 border-none hover:bg-emerald-200">Paid</Badge>;
-      case CheckoutStatus.PENDING:
-        return <Badge className="bg-amber-100 text-amber-800 border-none hover:bg-amber-200">Pending</Badge>;
-      case CheckoutStatus.FAILED:
-      case CheckoutStatus.EXPIRED:
-      case CheckoutStatus.CANCELLED:
-        return <Badge className="bg-rose-100 text-rose-800 border-none hover:bg-rose-200">{status}</Badge>;
-      default:
-        return <Badge variant={"outline"} >{status}</Badge>;
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB" }).format(amount);
+    const meta = STATUS_META[status];
+    if (!meta) return <Badge variant="outline" className="text-xs">{status}</Badge>;
+    const Icon = meta.icon;
+    return (
+      <Badge className={cn("shadow-none gap-1 text-xs", meta.cls)}>
+        <Icon className="w-3 h-3" />{meta.label}
+      </Badge>
+    );
   };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Checkouts</h1>
-          <p className="text-sm text-slate-500 mt-1">View and manage all payment sessions initiated by your platform.</p>
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Checkouts</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Payment sessions initiated by your platform.</p>
         </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Mock Date Filter Button */}
-          <Button variant="outline" className="text-slate-600 bg-white shadow-sm border-slate-200">
-            <CalendarIcon className="mr-2 h-4 w-4 text-slate-400" />
-            Last 30 days
-          </Button>
-          <Button variant="outline" className="text-slate-600 bg-white shadow-sm border-slate-200">
-            <Filter className="mr-2 h-4 w-4 text-slate-400" />
-            Filters
-          </Button>
-        </div>
+        <Button variant="outline" className="bg-white border-slate-200 text-slate-600 text-sm shadow-sm self-start sm:self-auto">
+          <Calendar className="mr-2 h-4 w-4 text-slate-400" />Last 30 days
+        </Button>
       </div>
 
-      {/* Filters and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 py-1">
-        <div className="relative w-full sm:max-w-md">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-          <Input 
-            placeholder="Search by ID, invoice, or email..." 
-            className="pl-9 bg-white border-slate-200 shadow-sm"
-            value={searchTerm}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+      {/* Search + status pills */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+          <Input
+            placeholder="Search ID, invoice, email…"
+            className="pl-9 h-9 bg-white border-slate-200 shadow-sm text-sm"
+            value={search}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
-          {["ALL", ...Object.values(CheckoutStatus)].map((status) => (
+        <div className="flex gap-1.5 flex-wrap">
+          {["ALL", ...Object.values(CheckoutStatus)].map((s) => (
             <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
-                statusFilter === status 
-                  ? "bg-slate-900 text-white" 
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-              }`}
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
+                statusFilter === s
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+              )}
             >
-              {status}
+              {s}
             </button>
           ))}
         </div>
@@ -94,59 +90,57 @@ export default function CheckoutsPage() {
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
         <Table>
-          <TableHeader className="bg-slate-50 border-b border-slate-200">
-            <TableRow>
-              <TableHead className="font-medium text-slate-600 w-[120px]">Checkout ID</TableHead>
-              <TableHead className="font-medium text-slate-600">Invoice ID</TableHead>
-              <TableHead className="font-medium text-slate-600">Amount</TableHead>
-              <TableHead className="font-medium text-slate-600 hidden md:table-cell">Customer</TableHead>
-              <TableHead className="font-medium text-slate-600">Status</TableHead>
-              <TableHead className="font-medium text-slate-600 hidden lg:table-cell">Webhook</TableHead>
-              <TableHead className="text-right font-medium text-slate-600">Created</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+          <TableHeader>
+            <TableRow className="bg-slate-50/80 border-b border-slate-200 hover:bg-slate-50/80">
+              {["Checkout ID", "Invoice ID", "Amount", "Customer", "Status", "Webhook", "Created", ""].map((h, i) => (
+                <TableHead key={i}
+                  className={cn("text-xs font-semibold text-slate-500 uppercase tracking-wide py-3",
+                    i === 0 && "px-5 w-[150px]",
+                    i === 3 && "hidden md:table-cell",
+                    i === 5 && "hidden lg:table-cell",
+                    i === 6 && "text-right pr-5",
+                    i === 7 && "w-10"
+                  )}>
+                  {h}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredCheckouts.length > 0 ? (
-              filteredCheckouts.map((chk) => (
-                <TableRow key={chk.id} className="group hover:bg-slate-50 border-slate-100 cursor-pointer transition-colors relative">
-                  <TableCell className="font-mono text-xs text-slate-600">
-                    <Link href={`/checkouts/${chk.id}`} className="absolute inset-0 z-10">
-                      <span className="sr-only">View checkout {chk.id}</span>
-                    </Link>
-                    {chk.id.slice(0, 10)}...
-                  </TableCell>
-                  <TableCell className="text-sm font-medium text-slate-900">{chk.invoiceId}</TableCell>
-                  <TableCell className="text-sm font-medium text-slate-900">{formatCurrency(chk.amount)}</TableCell>
-                  <TableCell className="text-sm text-slate-500 hidden md:table-cell">{chk.customerEmail}</TableCell>
-                  <TableCell>{getStatusBadge(chk.status)}</TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    {chk.webhookFiredAt ? (
-                      <div>
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Fired
-                        </span>
-                        <div className="text-[10px] text-slate-400 mt-1">{format(new Date(chk.webhookFiredAt), "MMM d, HH:mm")}</div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400 font-medium">Pending</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right text-sm text-slate-500">
-                    {format(new Date(chk.createdAt), "MMM d, yyyy")}
-                    <div className="text-xs">{format(new Date(chk.createdAt), "HH:mm")}</div>
-                  </TableCell>
-                  <TableCell>
-                    <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
+            {filtered.length > 0 ? filtered.map((chk) => (
+              <TableRow key={chk.id} className="group border-slate-100 hover:bg-slate-50/60 cursor-pointer relative transition-colors">
+                <TableCell className="px-5 py-3.5">
+                  <Link href={`/checkouts/${chk.id}`} className="absolute inset-0 z-10"><span className="sr-only">View</span></Link>
+                  <span className="font-mono text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded">{chk.id.slice(0, 12)}…</span>
+                </TableCell>
+                <TableCell className="py-3.5 text-sm font-medium text-slate-800">{chk.invoiceId}</TableCell>
+                <TableCell className="py-3.5 text-sm font-semibold text-slate-900">{fmt(chk.amount)}</TableCell>
+                <TableCell className="py-3.5 text-sm text-slate-500 hidden md:table-cell">{chk.customerEmail}</TableCell>
+                <TableCell className="py-3.5">{getStatusBadge(chk.status)}</TableCell>
+                <TableCell className="py-3.5 hidden lg:table-cell">
+                  {chk.webhookFiredAt ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                      <Zap className="h-3 w-3" />Fired
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="py-3.5 text-right text-xs text-slate-500 pr-5">
+                  {format(new Date(chk.createdAt), "MMM d")}<br />
+                  <span className="text-slate-400">{format(new Date(chk.createdAt), "HH:mm")}</span>
+                </TableCell>
+                <TableCell className="py-3.5 pr-3">
+                  <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                </TableCell>
+              </TableRow>
+            )) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-slate-500">
-                  <div className="flex flex-col items-center justify-center">
-                    <Search className="h-8 w-8 text-slate-300 mb-2" />
-                    <p>No checkouts found matching your criteria.</p>
+                <TableCell colSpan={8} className="h-36 text-center">
+                  <div className="flex flex-col items-center justify-center text-slate-400">
+                    <Search className="h-7 w-7 mb-2 text-slate-300" />
+                    <p className="text-sm font-medium text-slate-500">No checkouts found</p>
+                    <p className="text-xs mt-0.5">Try adjusting your search or filters</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -155,11 +149,11 @@ export default function CheckoutsPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between px-2 text-sm text-slate-500">
-        <div>Showing {filteredCheckouts.length} of {mockCheckouts.length} results</div>
-        <div className="flex gap-1">
-          <Button variant="outline" size="sm" disabled className="h-8 shadow-sm">Previous</Button>
-          <Button variant="outline" size="sm" disabled className="h-8 shadow-sm">Next</Button>
+      <div className="flex items-center justify-between text-xs text-slate-500">
+        <span>Showing <span className="font-medium text-slate-700">{filtered.length}</span> of <span className="font-medium text-slate-700">{mockCheckouts.length}</span> checkouts</span>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" disabled className="h-8 text-xs">Previous</Button>
+          <Button variant="outline" size="sm" disabled className="h-8 text-xs">Next</Button>
         </div>
       </div>
     </div>

@@ -9,221 +9,184 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { mockAdminConfig } from "@/lib/mock/data";
 import { mockClientProfile } from "@/lib/mock/client";
-import { Activity, Bell, FileText, ShieldCheck } from "lucide-react";
+import { Activity, Bell, FileText, ShieldCheck, Zap, Globe, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+// import { useSettings, useUpdateWebhook, useUpdateBranding, useUpdateNotifications, useTestWebhook } from "@/lib/api"; // ← connect when ready
 
-const notificationDefaults = [
-  {
-    id: "notif-verification",
-    label: "Deposit verifications",
-    description: "Email when a deposit is verified or requires review.",
-    channel: "Email",
-    enabled: true,
-  },
-  {
-    id: "notif-funds",
-    label: "Funded transactions",
-    description: "Push notification once a transaction has settled.",
-    channel: "Webhook",
-    enabled: true,
-  },
-  {
-    id: "notif-receipt",
-    label: "Receipt failures",
-    description: "Alert when a submitted proof cannot be parsed.",
-    channel: "SMS",
-    enabled: false,
-  },
+const notifDefaults = [
+  { id: "notif-verification", label: "Deposit verifications", description: "Email when a deposit is verified or needs review.", channel: "Email", enabled: true },
+  { id: "notif-funds",        label: "Funded transactions",  description: "Push notification once a transaction settles.",    channel: "Webhook", enabled: true },
+  { id: "notif-receipt",      label: "Receipt failures",     description: "Alert when submitted proof can't be parsed.",      channel: "SMS",     enabled: false },
 ];
 
 export default function SettingsPage() {
-  const [notifications, setNotifications] = useState(notificationDefaults);
+  const [notifications, setNotifications] = useState(notifDefaults);
   const [webhookUrl, setWebhookUrl] = useState(mockClientProfile.webhookUrl ?? "");
-  const [theme, setTheme] = useState("dark");
+  const [savingWebhook, setSavingWebhook] = useState(false);
+  const [testingWebhook, setTestingWebhook] = useState(false);
 
-  const groupedConfigs = useMemo(() => {
-    const groups = new Map<string, (typeof mockAdminConfig)[number]>();
-    mockAdminConfig.forEach((config) => {
-      const group = config.group ?? "general";
-      groups.set(group, [config, ...(groups.get(group) ?? [])]);
-    });
-    return Array.from(groups.entries());
-  }, []);
-
-  const totalStats = [
-    {
-      label: "Checkouts this month",
-      value: mockClientProfile.stats.totalCheckoutsMonth,
-      icon: <Activity className="h-4 w-4 text-slate-400" />,
-    },
-    {
-      label: "Deposits this month",
-      value: mockClientProfile.stats.totalDepositsMonth,
-      icon: <FileText className="h-4 w-4 text-slate-400" />,
-    },
-    {
-      label: "Funded this month",
-      value: mockClientProfile.stats.totalFundedMonth,
-      icon: <ShieldCheck className="h-4 w-4 text-slate-400" />,
-    },
-    {
-      label: "Needs attention",
-      value: mockClientProfile.stats.pendingAttention,
-      icon: <Bell className="h-4 w-4 text-slate-400" />,
-    },
+  const statCards = [
+    { label: "Checkouts", value: mockClientProfile.stats.totalCheckoutsMonth, icon: Activity },
+    { label: "Deposits",  value: mockClientProfile.stats.totalDepositsMonth,  icon: FileText },
+    { label: "Funded",    value: `${mockClientProfile.stats.totalFundedMonth.toLocaleString()} ETB`, icon: ShieldCheck },
+    { label: "Attention", value: mockClientProfile.stats.pendingAttention, icon: Bell, alert: true },
   ];
 
-  const toggleNotification = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((option) =>
-        option.id === id ? { ...option, enabled: !option.enabled } : option
-      )
-    );
+  const groupedConfigs = useMemo(() => {
+    const map = new Map<string, typeof mockAdminConfig>();
+    mockAdminConfig.forEach((c) => {
+      const g = c.group ?? "general";
+      map.set(g, [...(map.get(g) ?? []), c]);
+    });
+    return Array.from(map.entries());
+  }, []);
+
+  const handleSaveWebhook = async () => {
+    setSavingWebhook(true);
+    await new Promise((r) => setTimeout(r, 600));
+    setSavingWebhook(false);
+    toast.success("Webhook URL saved");
   };
 
-  return (
-    <section className="space-y-6 pb-10">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-white">Settings</h1>
-        <p className="text-sm text-slate-400">
-          Manage webhooks, branding, notification rules, and admin configuration values that back the client dashboard.
-        </p>
-      </header>
+  const handleTestWebhook = async () => {
+    setTestingWebhook(true);
+    await new Promise((r) => setTimeout(r, 900));
+    setTestingWebhook(false);
+    toast.success("Test ping sent — got 200 OK");
+  };
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {totalStats.map((stat) => (
-          <Card key={stat.label} className="border-slate-800/60 bg-slate-900/40">
-            <CardContent className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase text-slate-400">{stat.label}</p>
-                <p className="text-2xl font-semibold text-white">{stat.value.toLocaleString("en-US")}</p>
+  const toggleNotif = (id: string) =>
+    setNotifications((prev) => prev.map((n) => n.id === id ? { ...n, enabled: !n.enabled } : n));
+
+  return (
+    <div className="space-y-6 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div>
+        <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Settings</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Manage your portal configuration, webhooks, and notification preferences.</p>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((s) => (
+          <Card key={s.label} className={`border shadow-sm ${s.alert ? "border-rose-200 bg-rose-50/30" : "border-slate-200"}`}>
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-2">
+                <p className={`text-xs font-medium uppercase tracking-wide ${s.alert ? "text-rose-500" : "text-slate-500"}`}>{s.label}</p>
+                <s.icon className={`h-4 w-4 ${s.alert ? "text-rose-400" : "text-slate-400"}`} />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                {stat.icon}
-              </div>
+              <p className={`text-2xl font-bold ${s.alert ? "text-rose-700" : "text-slate-900"}`}>{s.value.toLocaleString()}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-slate-900/60 bg-white/5">
-          <CardHeader className="border-b border-white/10 bg-slate-950/40">
-            <CardTitle className="flex items-center justify-between text-base text-white">
-              Webhooks &amp; API endpoints
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Webhooks */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-4 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <Globe className="h-4 w-4 text-slate-400" />Webhook Endpoint
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs uppercase text-slate-500">Webhook URL</Label>
-              <Input
-                className="bg-white/5 text-sm"
-                value={webhookUrl}
-                onChange={(event) => setWebhookUrl(event.target.value)}
+          <CardContent className="space-y-4 pt-5">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-slate-500 uppercase tracking-wide">Webhook URL</Label>
+              <Input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://api.yourapp.com/webhook"
-              />
-              <p className="text-xs text-slate-500">
-                Payloads will be delivered to this endpoint after a deposit transitions to verified or rejected states.
-              </p>
+                className="font-mono text-sm border-slate-200 bg-white" />
+              <p className="text-xs text-slate-400">Payloads fire on VERIFIED, FUNDED, and REJECTED_HARD transitions.</p>
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs uppercase text-slate-500">Webhook health</Label>
-              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200">200 OK</Badge>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 shadow-none gap-1 text-xs">
+                <CheckCircle2 className="w-3 h-3" />200 OK
+              </Badge>
+              <span className="text-xs text-slate-400">Last checked just now</span>
             </div>
-            <Button variant="outline" size="sm" className="w-full">
-              Save webhook settings
-            </Button>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={handleSaveWebhook} disabled={savingWebhook} className="bg-slate-900 hover:bg-slate-800 text-white h-8">
+                {savingWebhook ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Saving…</> : "Save"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleTestWebhook} disabled={testingWebhook} className="h-8 border-slate-200 text-slate-600">
+                {testingWebhook ? <><Loader2 className="mr-1.5 h-3 w-3 animate-spin" />Testing…</> : <><Zap className="mr-1.5 h-3 w-3" />Send Test</>}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="border-slate-900/60 bg-white/5">
-          <CardHeader className="border-b border-white/10 bg-slate-950/40">
-            <CardTitle className="flex items-center justify-between text-base text-white">
-              Branding &amp; portal identity
+        {/* Branding */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-4 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-slate-400" />Portal Identity
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="pt-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 overflow-hidden rounded-full border border-white/20 bg-slate-800">
-                <img src={mockClientProfile.logoUrl ?? ""} alt={mockClientProfile.name} className="h-full w-full object-cover" />
+              <div className="h-11 w-11 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-bold text-slate-600">{mockClientProfile.name[0]}</span>
               </div>
               <div>
-                <p className="text-sm text-slate-200">{mockClientProfile.name}</p>
-                <p className="text-xs text-slate-400">Slug: {mockClientProfile.slug}</p>
+                <p className="font-semibold text-slate-900 text-sm">{mockClientProfile.name}</p>
+                <p className="text-xs text-slate-400 font-mono">/{mockClientProfile.slug}</p>
               </div>
             </div>
-            <div>
-              <Label className="text-xs uppercase text-slate-500">Dashboard theme</Label>
-              <div className="mt-2 flex items-center gap-3">
-                {(["light", "dark"] as const).map((candidate) => (
-                  <Button
-                    key={candidate}
-                    variant={theme === candidate ? "solid" : "ghost"}
-                    className="text-xs font-medium text-slate-100"
-                    onClick={() => setTheme(candidate)}
-                  >
-                    {candidate}
-                  </Button>
-                ))}
-              </div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+              <p className="text-xs text-slate-500 font-medium">Client ID</p>
+              <code className="text-xs font-mono text-slate-700 select-all">client-1234-5678</code>
             </div>
-            <p className="text-xs text-slate-500">
-              Your theme choice controls the navigation contrast for payer admins. The backend persists the value under <span className="font-mono">branding.theme</span>.
-            </p>
+            <p className="text-xs text-slate-400">Contact support to update your portal name or logo.</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-slate-900/60 bg-white/5">
-        <CardHeader className="border-b border-white/10 bg-slate-950/40">
-          <CardTitle className="flex items-center justify-between text-base text-white">
-            Notification routing
-            <Badge className="text-xs bg-slate-700 text-slate-100 border-white/10">Managed</Badge>
+      {/* Notifications */}
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-4 border-b border-slate-100">
+          <CardTitle className="text-sm font-semibold text-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2"><Bell className="h-4 w-4 text-slate-400" />Notification Routing</div>
+            <Badge className="text-[10px] bg-slate-100 text-slate-500 border-slate-200 shadow-none">Managed</Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {notifications.map((notification) => (
-            <div key={notification.id} className="flex flex-col gap-2 rounded-xl border border-slate-800/60 bg-slate-900/40 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-white">{notification.label}</p>
-                  <p className="text-xs text-slate-400">Channel: {notification.channel}</p>
+        <CardContent className="pt-5 space-y-3">
+          {notifications.map((n) => (
+            <div key={n.id} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition-colors">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-semibold text-slate-800">{n.label}</p>
+                  <Badge className="text-[10px] bg-slate-100 text-slate-500 border-slate-200 shadow-none">{n.channel}</Badge>
                 </div>
-                <Switch
-                  checked={notification.enabled}
-                  onChange={() => toggleNotification(notification.id)}
-                />
+                <p className="text-xs text-slate-400 mt-0.5">{n.description}</p>
               </div>
-              <p className="text-xs text-slate-400">{notification.description}</p>
+              <Switch checked={n.enabled} onCheckedChange={() => toggleNotif(n.id)} />
             </div>
           ))}
         </CardContent>
       </Card>
 
-      <Card className="border-slate-900/60 bg-white/5">
-        <CardHeader className="border-b border-white/10 bg-slate-950/40">
-          <CardTitle className="text-base text-white">Admin config overrides</CardTitle>
+      {/* Admin config */}
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-4 border-b border-slate-100">
+          <CardTitle className="text-sm font-semibold text-slate-800">Admin Config Values</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            {groupedConfigs.map(([group, configs]) => (
-              <div key={group}>
-                <p className="text-xs uppercase text-slate-400">{group}</p>
-                <div className="mt-1 space-y-1 rounded-xl border border-slate-800/60 bg-slate-950/40 p-3">
-                  {configs.map((config) => (
-                    <div key={config.id} className="flex items-center justify-between gap-3 text-sm text-slate-200">
-                      <div>
-                        <p className="font-medium text-slate-100">{config.label ?? config.key}</p>
-                        <p className="text-xs text-slate-400">{config.key}</p>
-                      </div>
-                      <Badge className="bg-white/10 text-xs text-emerald-200 border-emerald-400/30">{config.value}</Badge>
+        <CardContent className="pt-5 space-y-4">
+          {groupedConfigs.map(([group, configs]) => (
+            <div key={group}>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">{group}</p>
+              <div className="rounded-lg border border-slate-200 overflow-hidden">
+                {configs.map((c, i) => (
+                  <div key={c.id} className={`flex items-center justify-between px-4 py-3 text-sm ${i < configs.length - 1 ? "border-b border-slate-100" : ""}`}>
+                    <div>
+                      <p className="font-medium text-slate-800">{c.label ?? c.key}</p>
+                      <p className="text-xs font-mono text-slate-400">{c.key}</p>
                     </div>
-                  ))}
-                </div>
+                    <Badge className="text-xs bg-slate-100 text-slate-700 border-slate-200 shadow-none font-mono">{c.value}</Badge>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </CardContent>
       </Card>
-    </section>
+    </div>
   );
 }

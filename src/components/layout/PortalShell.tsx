@@ -10,26 +10,35 @@ export function PortalShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900">
+      {/* Desktop sidebar */}
       <Sidebar className="hidden md:flex" />
-      <div className="flex-1 flex flex-col md:pl-64">
+
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col md:pl-64 min-w-0">
         <Topbar onOpenSidebar={() => setIsNavOpen(true)} />
-        <main className="flex-1 p-6 sm:p-8 overflow-y-auto">
-          <div className="mx-auto w-full max-w-7xl">
+        <main className="flex-1 p-5 sm:p-7 overflow-y-auto">
+          <div className="mx-auto w-full max-w-6xl">
             {children}
           </div>
         </main>
       </div>
+
+      {/* Mobile sidebar overlay */}
       {isNavOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-slate-900/40" onClick={() => setIsNavOpen(false)} />
+          <div
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setIsNavOpen(false)}
+          />
           <Sidebar
             isMobile
             onClose={() => setIsNavOpen(false)}
-            className="absolute left-0 top-0 bottom-0"
+            className="absolute left-0 top-0 bottom-0 shadow-2xl"
           />
         </div>
       )}
-      <Toaster position="top-right" richColors />
+
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 }

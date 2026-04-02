@@ -1,280 +1,154 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { use } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { mockCheckouts, mockDeposits } from "@/lib/mock/data";
+import { mockCheckouts } from "@/lib/mock/data";
 import { CheckoutStatus } from "@/lib/types";
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, CheckCircle2, Clock, XCircle, AlertCircle, Link as LinkIcon, RefreshCw, Send, Calendar, CheckSquare } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronLeft, CheckCircle2, XCircle, Clock, Zap, User, Link2 } from "lucide-react";
+// import { useCheckout } from "@/lib/api"; // ← connect when ready
 
+const fmtAmt = (n: number) => new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB", maximumFractionDigits: 0 }).format(n);
+const fmtDt  = (s: string) => format(new Date(s), "MMM d, yyyy HH:mm:ss");
 
-
-const getStatusBadge = (status: CheckoutStatus) => {
-  switch (status) {
-    case CheckoutStatus.PAID:
-      return <Badge className="bg-emerald-100 text-emerald-800 border-none px-2.5 py-1 text-sm"><CheckCircle2 className="w-4 h-4 mr-1.5" />Paid</Badge>;
-    case CheckoutStatus.PENDING:
-      return <Badge className="bg-amber-100 text-amber-800 border-none px-2.5 py-1 text-sm"><Clock className="w-4 h-4 mr-1.5" />Pending</Badge>;
-    case CheckoutStatus.FAILED:
-    case CheckoutStatus.EXPIRED:
-    case CheckoutStatus.CANCELLED:
-      return <Badge className="bg-rose-100 text-rose-800 border-none px-2.5 py-1 text-sm"><XCircle className="w-4 h-4 mr-1.5" />{status}</Badge>;
-    default:
-      return <Badge variant="outline" className="px-2.5 py-1 text-sm">{status}</Badge>;
-  }
+const STATUS_META: Record<CheckoutStatus, { label: string; cls: string; icon: React.ElementType }> = {
+  [CheckoutStatus.PAID]:      { label: "Paid",      cls: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  [CheckoutStatus.PENDING]:   { label: "Pending",   cls: "bg-amber-100  text-amber-700  border-amber-200",    icon: Clock },
+  [CheckoutStatus.FAILED]:    { label: "Failed",    cls: "bg-rose-100   text-rose-700   border-rose-200",     icon: XCircle },
+  [CheckoutStatus.EXPIRED]:   { label: "Expired",   cls: "bg-rose-100   text-rose-700   border-rose-200",     icon: XCircle },
+  [CheckoutStatus.CANCELLED]: { label: "Cancelled", cls: "bg-slate-100  text-slate-600  border-slate-200",    icon: XCircle },
 };
 
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB" }).format(amount);
-};
+export default function CheckoutDetailPage({ params }: { params: Promise<{ checkoutId: string }> }) {
+  const { checkoutId } = use(params);
+  const chk = mockCheckouts.find((c) => c.id === checkoutId);
+  if (!chk) notFound();
 
-export function generateStaticParams() {
-  return mockCheckouts.map((checkout) => ({ checkoutId: checkout.id }));
-}
-
-export default async function CheckoutDetailPage({ params }: { params: { checkoutId: string } | Promise<{ checkoutId: string }> }) {
-  const { checkoutId } = await params;
-  const checkout = mockCheckouts.find(c => c.id === checkoutId);
-  
-  if (!checkout) {
-    notFound();
-  }
-
-  const deposit = mockDeposits.find(d => d.checkoutId === checkout.id);
-
-  // Webhook JSON mock formatting
-  const webhookPayload = JSON.stringify({
-    event: checkout.status === "PAID" ? "checkout.paid" : "checkout.updated",
-    data: {
-      id: checkout.id,
-      invoiceId: checkout.invoiceId,
-      amount: checkout.amount,
-      status: checkout.status,
-      transactionId: checkout.transactionId,
-      customer: {
-        email: checkout.customerEmail,
-        name: checkout.customerName,
-      }
-    }
-  }, null, 2);
+  const meta = STATUS_META[chk.status];
+  const Icon = meta.icon;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
-      <div className="flex items-center text-sm font-medium text-slate-500 space-x-2">
-        <Link href="/checkouts" className="hover:text-slate-900 transition-colors flex items-center">
-          <ArrowLeft className="w-4 h-4 mr-1" /> All Checkouts
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
+      <div>
+        <Link href="/checkouts" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4 transition-colors">
+          <ChevronLeft className="h-4 w-4" />Checkouts
         </Link>
-        <span>/</span>
-        <span className="text-slate-900 truncate max-w-[200px]">{checkout.id}</span>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
-            {formatCurrency(checkout.amount)}
-            {getStatusBadge(checkout.status)}
-          </h1>
-          <p className="text-sm text-slate-500 mt-2 font-mono bg-slate-100 py-1 px-2 rounded-md inline-flex">{checkout.id}</p>
-        </div>
-        <div className="text-right flex flex-col items-end">
-          <p className="text-sm font-medium text-slate-700">{format(new Date(checkout.createdAt), "MMMM d, yyyy 'at' h:mm a")}</p>
-          <div className="text-xs text-slate-500 mt-1 flex items-center">
-            <RefreshCw className="w-3 h-3 mr-1" /> Last updated: {format(new Date(checkout.updatedAt), "h:mm:ss a")}
+        <div className="flex items-start gap-3 flex-wrap">
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900 tracking-tight font-mono">{chk.id}</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Checkout Session</p>
+          </div>
+          <div className="mt-1">
+            <Badge className={`shadow-none gap-1 ${meta.cls}`}><Icon className="w-3.5 h-3.5" />{meta.label}</Badge>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          {/* Checkout Details */}
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg flex items-center"><CheckSquare className="w-5 h-5 mr-2 text-slate-400" /> Session Details</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableBody>
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableCell className="w-[180px] text-slate-500 py-4 font-medium">Invoice ID</TableCell>
-                    <TableCell className="font-mono text-slate-900">{checkout.invoiceId}</TableCell>
-                  </TableRow>
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableCell className="w-[180px] text-slate-500 py-4 font-medium">Product Name</TableCell>
-                    <TableCell className="text-slate-900">{checkout.productName}</TableCell>
-                  </TableRow>
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableCell className="w-[180px] text-slate-500 py-4 font-medium">Customer Email</TableCell>
-                    <TableCell>
-                      <a href={`mailto:${checkout.customerEmail}`} className="text-blue-600 hover:underline">{checkout.customerEmail}</a>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableCell className="w-[180px] text-slate-500 py-4 font-medium">Customer Name</TableCell>
-                    <TableCell className="text-slate-900">{checkout.customerName}</TableCell>
-                  </TableRow>
-                  {checkout.transactionId && (
-                    <TableRow className="border-slate-100 hover:bg-transparent">
-                      <TableCell className="w-[180px] text-slate-500 py-4 font-medium">Bank Trans. ID</TableCell>
-                      <TableCell className="font-mono font-medium text-indigo-700">{checkout.transactionId}</TableCell>
-                    </TableRow>
-                  )}
-                  <TableRow className="border-slate-100 hover:bg-transparent">
-                    <TableCell className="w-[180px] text-slate-500 py-4 font-medium flex items-center"><Calendar className="w-4 h-4 mr-2" /> Expires At</TableCell>
-                    <TableCell className="text-slate-900">{format(new Date(checkout.expiresAt), "MMM d, yyyy h:mm a")}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+      <div className="grid gap-5 md:grid-cols-2">
+        {/* Payment Info */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800">Payment Details</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {[
+              ["Invoice ID", chk.invoiceId],
+              ["Product", chk.productName],
+              ["Amount", fmtAmt(chk.amount)],
+              ["Created", fmtDt(chk.createdAt)],
+              ["Expires", fmtDt(chk.expiresAt)],
+              ["TX ID", chk.transactionId ?? "—"],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-start justify-between gap-4 text-sm">
+                <span className="text-slate-500 flex-shrink-0">{k}</span>
+                <span className="text-slate-900 font-mono text-xs text-right">{v}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
-          {/* Linked Deposit Request */}
-          <Card className="shadow-sm border-slate-200">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg flex items-center justify-between">
-                <div className="flex items-center">
-                  <LinkIcon className="w-5 h-5 mr-2 text-slate-400" /> Linked Deposit
-                </div>
-                {deposit && (
-                  <Link href={`/deposits/${deposit.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center bg-blue-50 px-3 py-1.5 rounded border border-blue-100 transition-colors">
-                    View Deposit <ArrowLeft className="w-4 h-4 ml-1 rotate-180" />
-                  </Link>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              {!deposit ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                  <p className="text-slate-500 font-medium tracking-wide">No deposit has been linked yet.</p>
-                  <p className="text-slate-400 text-sm mt-1">Waiting for the customer to submit a receipt.</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 rounded-lg p-4 border border-slate-100">
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Method</p>
-                      <p className="mt-1 font-semibold text-slate-900">{deposit.paymentMethod}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Amount</p>
-                      <p className="mt-1 font-semibold text-slate-900">{formatCurrency(deposit.amount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Status</p>
-                      <p className="mt-1 text-sm">
-                        <Badge variant="outline" className="font-semibold bg-white shadow-sm border-slate-200">
-                          {deposit.status.replace(/_/g, " ")}
-                        </Badge>
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Submitted</p>
-                      <p className="mt-1 text-sm font-medium text-slate-700">{format(new Date(deposit.createdAt), "MMM d, h:mm a")}</p>
-                    </div>
-                  </div>
+        {/* Customer */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <User className="h-4 w-4" />Customer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {[
+              ["Name", chk.customerName],
+              ["Email", chk.customerEmail],
+              ["User ID", chk.userId ?? "—"],
+            ].map(([k, v]) => (
+              <div key={k} className="flex items-start justify-between gap-4 text-sm">
+                <span className="text-slate-500">{k}</span>
+                <span className="text-slate-900 font-mono text-xs text-right">{v}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
-                  {deposit.verifications && deposit.verifications.length > 0 && (
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">Automated Verification</h4>
-                      <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 overflow-hidden">
-                        {deposit.verifications.map((v) => (
-                          <div key={v.id} className="p-3 flex items-start bg-white">
-                            <div className="mt-0.5 flex-shrink-0 mr-3">
-                              {v.passed ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-rose-500" />}
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-900">{v.check.replace(/_/g, " ")}</p>
-                              <p className="text-xs text-slate-500 mt-0.5">{v.detail}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+        {/* Webhook */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <Zap className="h-4 w-4" />Webhook
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            <div className="text-sm space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-slate-500 flex-shrink-0">URL</span>
+                <a href={chk.webhookUrl} className="text-blue-600 text-xs font-mono hover:underline truncate max-w-[180px]">{chk.webhookUrl}</a>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-slate-500">Fired At</span>
+                <span className="text-slate-900 text-xs font-mono text-right">{chk.webhookFiredAt ? fmtDt(chk.webhookFiredAt) : "—"}</span>
+              </div>
+              {chk.webhookResponse && (
+                <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <p className="text-xs text-slate-500 font-medium mb-1">Response Payload</p>
+                  <pre className="text-xs font-mono text-slate-700 overflow-x-auto">{JSON.stringify(JSON.parse(chk.webhookResponse), null, 2)}</pre>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Webhook Delivery & URLs */}
-        <div className="space-y-6">
-          <Card className="shadow-sm border-slate-200 h-full">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
-              <CardTitle className="text-lg flex items-center"><Send className="w-5 h-5 mr-2 text-slate-400" /> Developer Logs</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-6">
-              
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900 mb-3 uppercase tracking-wider">Configured URLs</h4>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1 font-medium">Webhook URL</p>
-                    <div className="bg-slate-50 rounded p-2 text-xs font-mono text-slate-700 break-all border border-slate-200">{checkout.webhookUrl}</div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500 mb-1 font-medium">Success Redirect</p>
-                    <div className="bg-slate-50 rounded p-2 text-xs font-mono text-slate-700 break-all border border-slate-200">{checkout.successUrl}</div>
-                  </div>
-                </div>
+        {/* Redirect URLs */}
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+              <Link2 className="h-4 w-4" />Redirect URLs
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-3">
+            {[["Success", chk.successUrl], ["Cancel", chk.cancelUrl], ["Failed", chk.failedUrl]].map(([k, v]) => (
+              <div key={k} className="flex items-start justify-between gap-4 text-sm">
+                <span className="text-slate-500 flex-shrink-0">{k}</span>
+                <a href={v} className="text-blue-600 text-xs font-mono hover:underline truncate max-w-[180px]">{v}</a>
               </div>
-
-              <div className="h-px bg-slate-100 w-full my-4"></div>
-
-              <div>
-                <h4 className="text-sm font-semibold text-slate-900 mb-3 flex items-center justify-between uppercase tracking-wider">
-                  Webhook Event
-                  {checkout.webhookFiredAt ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-emerald-100 text-emerald-800 border-emerald-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> DELIVERED
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-widest uppercase bg-slate-100 text-slate-600 border-slate-200">
-                      PENDING
-                    </span>
-                  )}
-                </h4>
-
-                {checkout.webhookFiredAt ? (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="bg-slate-50 rounded p-3 border border-slate-100">
-                        <p className="text-xs text-slate-500 mb-1">Time</p>
-                        <p className="font-medium text-slate-900">{format(new Date(checkout.webhookFiredAt), "HH:mm:ss.SSS")}</p>
-                      </div>
-                      <div className="bg-slate-50 rounded p-3 border border-slate-100">
-                        <p className="text-xs text-slate-500 mb-1">HTTP Status</p>
-                        <p className="font-mono text-emerald-600 font-semibold bg-emerald-50 inline-block px-1.5 rounded">200 OK</p>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-slate-500 mb-2 font-medium">Request Payload</p>
-                      <pre className="bg-slate-950 text-slate-50 p-4 rounded-xl text-xs overflow-x-auto font-mono leading-relaxed max-h-[300px] overflow-y-auto">
-                        {webhookPayload}
-                      </pre>
-                    </div>
-
-                    <div>
-                      <p className="text-xs text-slate-500 mb-2 font-medium">Response Header</p>
-                      <pre className="bg-slate-100 text-slate-800 p-3 rounded-lg text-xs overflow-x-auto font-mono border border-slate-200">
-                        {checkout.webhookResponse || "Success"}
-                      </pre>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-6 bg-slate-50 rounded-lg border border-slate-100 border-dashed">
-                    <Clock className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="text-sm text-slate-500">Waiting for checkout to reach a terminal state before firing webhook.</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
+
+      {chk.depositRequest && (
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <CardTitle className="text-sm font-semibold text-slate-800">Linked Deposit</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <Link href={`/deposits/${chk.depositRequest.id}`}
+              className="inline-flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-700 hover:underline">
+              {chk.depositRequest.id}
+            </Link>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
