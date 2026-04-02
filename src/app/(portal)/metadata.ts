@@ -1,4 +1,4 @@
 export const metadata = {
-  title: "Local Bank Payment Verification | Client Portal",
+  title: "LocalPay | Client Portal",
   description: "Payment gateway integration portal",
 };

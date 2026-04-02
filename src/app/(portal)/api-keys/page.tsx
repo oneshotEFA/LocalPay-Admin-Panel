@@ -119,7 +119,7 @@ export default function ApiKeysPage() {
             API Keys
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            Authenticate your application with the HabeshaUnlocker gateway.
+            Authenticate your application with the LocalPay gateway.
           </p>
         </div>
         <Dialog open={isGenerateOpen} onOpenChange={closeGenerate}>

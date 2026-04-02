@@ -45,15 +45,7 @@ export function useMe() {
   });
 }
 
-export function useLogin() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: authApi.login,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.me() });
-    },
-  });
-}
+
 
 export function useLogout() {
   const qc = useQueryClient();

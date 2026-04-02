@@ -1,17 +1,18 @@
-import type { ReactNode } from "react";
+"use client";
+import { useEffect, type ReactNode } from "react";
 import { PortalShell } from "@/components/layout/PortalShell";
+import { useAuth } from "@/lib/authProvider";
+import { useRouter } from "next/navigation";
 
 export default function PortalLayout({ children }: { children: ReactNode }) {
   // Simple auth gate placeholder
-  const isAuthenticated = true;
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-900">
-        <p>Redirecting to login...</p>
-      </div>
-    );
-  }
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
 
   return <PortalShell>{children}</PortalShell>;
 }

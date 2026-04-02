@@ -1,3 +1,4 @@
+import { supabase } from "../supabase/client";
 import type {
   ClientReceivingAccount,
   DepositRequest,
@@ -10,8 +11,6 @@ import type {
 } from "../types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
-const DEFAULT_CLIENT_ID =
-  process.env.NEXT_PUBLIC_ADMIN_CLIENT_ID ?? "client-1234-5678";
 
 export class ApiError extends Error {
   constructor(
@@ -25,15 +24,26 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const token = session?.access_token;
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-
+  if (res.status === 204) return undefined as T;
+  if (res.status == 401 || res.status == 403) {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+    return undefined as T;
+  }
   if (!res.ok) {
     let code = "UNKNOWN_ERROR";
     let message = `HTTP ${res.status}`;
@@ -45,13 +55,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(res.status, code, message);
   }
 
-  if (res.status === 204) return undefined as T;
-
   return res.json() as Promise<T>;
 }
 
-function adminPath(path: string, clientId = DEFAULT_CLIENT_ID) {
-  return `/admin/clients/${clientId}${path}`;
+function adminPath(path: string) {
+  return `/admin${path}`;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>) {
@@ -65,21 +73,9 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 
 // Auth remains untouched for when the backend auth endpoints are ready.
 export const authApi = {
-  login: (body: { email: string; password: string }) =>
-    request<{ user: { id: string; email: string; name: string } }>(
-      "/auth/login",
-      {
-        method: "POST",
-        body: JSON.stringify(body),
-      },
-    ),
+  logout: async () => await supabase.auth.signOut(),
 
-  logout: () => request<void>("/auth/logout", { method: "POST" }),
-
-  me: () =>
-    request<{ id: string; email: string; name: string; clientId: string }>(
-      "/auth/me",
-    ),
+  me: () => request<{ id: string; name: string; clientId: string }>("/auth/me"),
 
   refresh: () =>
     request<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
@@ -280,46 +276,43 @@ export interface TransactionDetailItem extends Transaction {
 
 export const overviewApi = {
   dashboard: (clientId?: string) =>
-    request<DashboardResponse>(adminPath("/dashboard", clientId)),
+    request<DashboardResponse>(adminPath("/dashboard")),
 };
 
 export const apiKeysApi = {
   list: (clientId?: string) =>
-    request<ApiKeysListResponse>(adminPath("/api-keys", clientId)),
+    request<ApiKeysListResponse>(adminPath("/api-keys")),
 
   create: (body: CreateApiKeyBody, clientId?: string) =>
-    request<CreatedApiKeyResponse>(adminPath("/api-keys", clientId), {
+    request<CreatedApiKeyResponse>(adminPath("/api-keys"), {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
   revoke: (id: string, clientId?: string) =>
-    request<RevokeApiKeyResponse>(
-      adminPath(`/api-keys/${id}/revoke`, clientId),
-      {
-        method: "POST",
-      },
-    ),
+    request<RevokeApiKeyResponse>(adminPath(`/api-keys/${id}/revoke`), {
+      method: "POST",
+    }),
 };
 
 export const accountsApi = {
   list: (clientId?: string) =>
-    request<AccountsListResponse>(adminPath("/accounts", clientId)),
+    request<AccountsListResponse>(adminPath("/accounts")),
 
   create: (body: UpsertAccountBody, clientId?: string) =>
-    request<AccountMutationResponse>(adminPath("/accounts", clientId), {
+    request<AccountMutationResponse>(adminPath("/accounts"), {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
   update: (id: string, body: UpsertAccountBody, clientId?: string) =>
-    request<AccountMutationResponse>(adminPath(`/accounts/${id}`, clientId), {
+    request<AccountMutationResponse>(adminPath(`/accounts/${id}`), {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
 
   remove: (id: string, clientId?: string) =>
-    request<AccountMutationResponse>(adminPath(`/accounts/${id}`, clientId), {
+    request<AccountMutationResponse>(adminPath(`/accounts/${id}`), {
       method: "DELETE",
     }),
 };
@@ -327,37 +320,31 @@ export const accountsApi = {
 export const checkoutsApi = {
   list: (params: CheckoutListParams = {}, clientId?: string) =>
     request<PaginatedResponse<CheckoutListItem>>(
-      `${adminPath("/checkouts", clientId)}${buildQuery(params)}`,
+      `${adminPath("/checkouts")}${buildQuery(params)}`,
     ),
 
   get: (id: string, clientId?: string) =>
-    request<{ item: CheckoutDetailItem }>(
-      adminPath(`/checkouts/${id}`, clientId),
-    ),
+    request<{ item: CheckoutDetailItem }>(adminPath(`/checkouts/${id}`)),
 };
 
 export const depositsApi = {
   list: (params: DepositListParams = {}, clientId?: string) =>
     request<PaginatedResponse<DepositListItem>>(
-      `${adminPath("/deposits", clientId)}${buildQuery(params)}`,
+      `${adminPath("/deposits")}${buildQuery(params)}`,
     ),
 
   get: (id: string, clientId?: string) =>
-    request<{ item: DepositDetailItem }>(
-      adminPath(`/deposits/${id}`, clientId),
-    ),
+    request<{ item: DepositDetailItem }>(adminPath(`/deposits/${id}`)),
 };
 
 export const transactionsApi = {
   list: (params: TransactionListParams = {}, clientId?: string) =>
     request<PaginatedResponse<TransactionListItem>>(
-      `${adminPath("/transactions", clientId)}${buildQuery(params)}`,
+      `${adminPath("/transactions")}${buildQuery(params)}`,
     ),
 
   get: (id: string, clientId?: string) =>
-    request<{ item: TransactionDetailItem }>(
-      adminPath(`/transactions/${id}`, clientId),
-    ),
+    request<{ item: TransactionDetailItem }>(adminPath(`/transactions/${id}`)),
 };
 
 export const settingsApi = {
