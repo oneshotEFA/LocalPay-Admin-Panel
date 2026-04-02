@@ -55,9 +55,9 @@ export function Sidebar({
       )}
     >
       {/* Logo */}
-      <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
+      <div className="h-16 px-5 flex items-center justify-between border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-lg bg-slate-900 flex items-center justify-center flex-shrink-0">
+          <div className="h-7 w-7 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
             <ShieldCheck className="h-3.5 w-3.5 text-white" strokeWidth={2.5} />
           </div>
           <div>
@@ -94,7 +94,7 @@ export function Sidebar({
           >
             <item.icon
               className={cn(
-                "h-4 w-4 flex-shrink-0 transition-colors",
+                "h-4 w-4 shrink-0 transition-colors",
                 isActive(item.href)
                   ? "text-white"
                   : "text-slate-400 group-hover:text-slate-600",
@@ -116,14 +116,14 @@ export function Sidebar({
               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
           )}
         >
-          <Settings className="h-4 w-4 flex-shrink-0 text-slate-400 group-hover:text-slate-600" />
+          <Settings className="h-4 w-4 shrink-0 text-slate-400 group-hover:text-slate-600" />
           Settings
         </Link>
         <button
           onClick={() => handleLogout()}
           className="group flex items-center gap-2.5 px-3 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 transition-all"
         >
-          <LogOut className="h-4 w-4 flex-shrink-0 text-red-400" />
+          <LogOut className="h-4 w-4 shrink-0 text-red-400" />
           Sign Out
         </button>
       </div>

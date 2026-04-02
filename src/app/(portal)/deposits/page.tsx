@@ -181,7 +181,7 @@ console.log("Deposits data:", data);
         <Table>
           <TableHeader>
             <TableRow className="bg-slate-50/80 border-b border-slate-200 hover:bg-slate-50/80">
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-5 py-3 w-[150px]">
+              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-5 py-3 w-37.5">
                 Deposit ID
               </TableHead>
               <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide py-3">

@@ -170,7 +170,7 @@ export default function CheckoutsPage() {
                   key={i}
                   className={cn(
                     "text-xs font-semibold text-slate-500 uppercase tracking-wide py-3",
-                    i === 0 && "px-5 w-[150px]",
+                    i === 0 && "px-5 w-37.5",
                     i === 3 && "hidden md:table-cell",
                     i === 5 && "hidden lg:table-cell",
                     i === 6 && "text-right pr-5",

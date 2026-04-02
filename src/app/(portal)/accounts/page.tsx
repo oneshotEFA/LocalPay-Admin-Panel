@@ -1,16 +1,38 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Edit2, Save, X, Building2, Smartphone, CheckCircle2, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Save,
+  X,
+  Building2,
+  Smartphone,
+  CheckCircle2,
+  Trash2,
+} from "lucide-react";
 import { PaymentMethod, type ClientReceivingAccount } from "@/lib/types";
-import { useAccounts, useCreateAccount, useDeleteAccount, useUpdateAccount } from "@/lib/api";
+import {
+  useAccounts,
+  useCreateAccount,
+  useDeleteAccount,
+  useUpdateAccount,
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const BANK_NAMES: Record<PaymentMethod, string> = {
   [PaymentMethod.CBE]: "Commercial Bank of Ethiopia",
@@ -28,6 +50,12 @@ const BANK_COLORS: Record<PaymentMethod, string> = {
   [PaymentMethod.NIB]: "bg-orange-100 text-orange-700",
 };
 
+const PAYMENT_METHODS = Object.values(PaymentMethod);
+
+function isPaymentMethod(value: string): value is PaymentMethod {
+  return PAYMENT_METHODS.includes(value as PaymentMethod);
+}
+
 export default function AccountsPage() {
   const { data, isLoading, error } = useAccounts();
   const createAccount = useCreateAccount();
@@ -36,7 +64,10 @@ export default function AccountsPage() {
 
   const accounts = data?.items ?? [];
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ accountName: "", accountNumber: "" });
+  const [editForm, setEditForm] = useState({
+    accountName: "",
+    accountNumber: "",
+  });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newAccount, setNewAccount] = useState({
     paymentMethod: PaymentMethod.CBE,
@@ -46,12 +77,21 @@ export default function AccountsPage() {
 
   const configuredMethods = accounts.map((a) => a.paymentMethod);
   const availableMethods = Object.values(PaymentMethod).filter(
-    (m) => !configuredMethods.includes(m)
+    (m) => !configuredMethods.includes(m),
   );
+
+  const selectedPaymentMethod = availableMethods.includes(
+    newAccount.paymentMethod,
+  )
+    ? newAccount.paymentMethod
+    : (availableMethods[0] ?? PaymentMethod.CBE);
 
   const startEdit = (acc: ClientReceivingAccount) => {
     setEditingId(acc.id);
-    setEditForm({ accountName: acc.accountName, accountNumber: acc.accountNumber });
+    setEditForm({
+      accountName: acc.accountName,
+      accountNumber: acc.accountNumber,
+    });
   };
 
   const saveEdit = async (id: string) => {
@@ -65,7 +105,9 @@ export default function AccountsPage() {
       setEditingId(null);
       toast.success("Account updated");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update account");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update account",
+      );
     }
   };
 
@@ -74,7 +116,9 @@ export default function AccountsPage() {
       await updateAccount.mutateAsync({ id: acc.id, isActive: !acc.isActive });
       toast.success(`Account ${!acc.isActive ? "enabled" : "disabled"}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update account");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update account",
+      );
     }
   };
 
@@ -84,8 +128,20 @@ export default function AccountsPage() {
       return;
     }
 
+    if (!isPaymentMethod(selectedPaymentMethod)) {
+      toast.error("Select a valid payment method");
+      return;
+    }
+
+    const payload = {
+      paymentMethod: selectedPaymentMethod,
+      accountName: newAccount.accountName.trim(),
+      accountNumber: newAccount.accountNumber.trim(),
+      isActive: true,
+    };
+
     try {
-      await createAccount.mutateAsync({ ...newAccount, isActive: true });
+      await createAccount.mutateAsync(payload);
       toast.success("Account added");
       setIsAddOpen(false);
       setNewAccount({
@@ -103,31 +159,58 @@ export default function AccountsPage() {
       await deleteAccount.mutateAsync(id);
       toast.success("Account deleted");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete account");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to delete account",
+      );
     }
   };
 
   const isMobile = (m: PaymentMethod) =>
     m === PaymentMethod.TELEBIRR || m === PaymentMethod.EBIRR;
 
+  const handleAddDialogChange = (open: boolean) => {
+    setIsAddOpen(open);
+
+    if (open) {
+      setNewAccount((current) => ({
+        ...current,
+        paymentMethod:
+          availableMethods.find((method) => method === current.paymentMethod) ??
+          availableMethods[0] ??
+          PaymentMethod.CBE,
+      }));
+      return;
+    }
+
+    setNewAccount({
+      paymentMethod: availableMethods[0] ?? PaymentMethod.CBE,
+      accountName: "",
+      accountNumber: "",
+    });
+  };
+
   if (isLoading) {
     return <div className="text-sm text-slate-500">Loading accounts...</div>;
   }
 
   if (error) {
-    return <div className="text-sm text-rose-600">Failed to load accounts.</div>;
+    return (
+      <div className="text-sm text-rose-600">Failed to load accounts.</div>
+    );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Receiving Accounts</h1>
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
+            Receiving Accounts
+          </h1>
           <p className="text-sm text-slate-500 mt-0.5">
             Bank accounts your users deposit money into for verification.
           </p>
         </div>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <Dialog open={isAddOpen} onOpenChange={handleAddDialogChange}>
           <DialogTrigger asChild>
             <Button
               className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm self-start sm:self-auto"
@@ -149,12 +232,14 @@ export default function AccountsPage() {
                 <Label className="text-sm font-medium">Payment Method</Label>
                 <select
                   className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-1"
-                  value={newAccount.paymentMethod}
+                  value={selectedPaymentMethod}
                   onChange={(e) =>
-                    setNewAccount({
-                      ...newAccount,
-                      paymentMethod: e.target.value as PaymentMethod,
-                    })
+                    setNewAccount((current) => ({
+                      ...current,
+                      paymentMethod: isPaymentMethod(e.target.value)
+                        ? e.target.value
+                        : current.paymentMethod,
+                    }))
                   }
                 >
                   {availableMethods.map((m) => (
@@ -173,7 +258,10 @@ export default function AccountsPage() {
                   placeholder="e.g. My Company PLC"
                   value={newAccount.accountName}
                   onChange={(e) =>
-                    setNewAccount({ ...newAccount, accountName: e.target.value })
+                    setNewAccount((current) => ({
+                      ...current,
+                      accountName: e.target.value,
+                    }))
                   }
                   className="border-slate-200"
                 />
@@ -187,7 +275,10 @@ export default function AccountsPage() {
                   placeholder="e.g. 1000123456789"
                   value={newAccount.accountNumber}
                   onChange={(e) =>
-                    setNewAccount({ ...newAccount, accountNumber: e.target.value })
+                    setNewAccount((current) => ({
+                      ...current,
+                      accountNumber: e.target.value,
+                    }))
                   }
                   className="border-slate-200 font-mono"
                 />
@@ -217,7 +308,7 @@ export default function AccountsPage() {
           >
             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
               <div
-                className={`h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 ${BANK_COLORS[acc.paymentMethod]}`}
+                className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${BANK_COLORS[acc.paymentMethod]}`}
               >
                 {isMobile(acc.paymentMethod) ? (
                   <Smartphone className="h-5 w-5" />
@@ -258,7 +349,10 @@ export default function AccountsPage() {
                       <Input
                         value={editForm.accountName}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, accountName: e.target.value })
+                          setEditForm({
+                            ...editForm,
+                            accountName: e.target.value,
+                          })
                         }
                         className="h-8 text-sm border-slate-200"
                       />
@@ -270,7 +364,10 @@ export default function AccountsPage() {
                       <Input
                         value={editForm.accountNumber}
                         onChange={(e) =>
-                          setEditForm({ ...editForm, accountNumber: e.target.value })
+                          setEditForm({
+                            ...editForm,
+                            accountNumber: e.target.value,
+                          })
                         }
                         className="h-8 text-sm font-mono border-slate-200"
                       />
@@ -282,16 +379,18 @@ export default function AccountsPage() {
                       <span className="text-slate-400 text-xs">Name </span>
                       {acc.accountName}
                     </span>
-                    <span className="text-sm font-mono text-slate-800 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-xs">
+                    <span className="text-sm font-mono text-slate-800 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
                       {acc.accountNumber}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-3 flex-shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">{acc.isActive ? "Active" : "Off"}</span>
+                  <span className="text-xs text-slate-400">
+                    {acc.isActive ? "Active" : "Off"}
+                  </span>
                   <Switch
                     checked={acc.isActive}
                     onCheckedChange={() => toggleActive(acc)}
@@ -351,7 +450,9 @@ export default function AccountsPage() {
         {accounts.length === 0 && (
           <div className="text-center py-16 border border-dashed border-slate-200 rounded-xl">
             <Building2 className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-            <p className="font-medium text-slate-700 text-sm">No receiving accounts configured</p>
+            <p className="font-medium text-slate-700 text-sm">
+              No receiving accounts configured
+            </p>
             <p className="text-xs text-slate-400 mt-1">
               Add bank accounts to start accepting deposits.
             </p>

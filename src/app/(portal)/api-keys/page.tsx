@@ -181,7 +181,7 @@ export default function ApiKeysPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="flex-shrink-0 border-slate-200"
+                        className="shrink-0 border-slate-200"
                         onClick={() =>
                           copy(generatedKey.apiKey, "Public key", "pk")
                         }
@@ -221,7 +221,7 @@ export default function ApiKeysPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="flex-shrink-0 border-slate-200"
+                        className="shrink-0 border-slate-200"
                         onClick={() =>
                           copy(generatedKey.apiSecret, "Secret key", "sk")
                         }

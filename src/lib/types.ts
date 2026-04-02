@@ -5,7 +5,7 @@ export enum PaymentMethod {
   TELEBIRR = "TELEBIRR",
   EBIRR = "EBIRR",
   ABYSSINIA = "ABYSSINIA",
-  NIB = "NIB"
+  NIB = "NIB",
 }
 
 export enum ReceiptType {
