@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LocalPay Admin Panel
 
-## Getting Started
+A clean, modern dashboard for businesses accepting Ethiopian digital payments—built for effortless integration, management, and workflow automation.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🌍 Overview
+
+**LocalPay Admin Panel** is a web-based dashboard for businesses that accept Ethiopian digital payments and want to automate payment verification and funding workflows.
+
+The panel empowers clients to:
+
+- Manage API keys for secure backend integration
+- Configure receiving accounts for Ethiopian banks and mobile wallets
+- Monitor customer checkouts in real time
+- Track and verify submitted deposits
+- View successful funded transactions posted to their platform
+
+Supported payment methods include CBE, Telebirr, eBirr, Bank of Abyssinia, and NIB.
+
+---
+
+## ✨ Features
+
+- **API & Credentials Management**  
+  Easily create and manage your payment API keys for secure communication.
+
+- **Account Configuration**  
+  Connect and configure your bank and mobile wallet accounts.
+
+- **Live Checkout Monitoring**  
+  See when customers start checkouts and follow their journey.
+
+- **Deposit Verification**  
+  Track receipts, and see deposit statuses: pending, verified, rejected, or funded.
+
+- **Transaction Reporting**  
+  Review completed, funded transactions with advanced filtering and search.
+
+- **Unified Activity Dashboard**  
+  Get a real-time snapshot of your monthly payment activity.
+
+---
+
+## 🔄 User Flow
+
+1. **Sign in** to your admin dashboard.
+2. **Generate API keys** and connect your backend to LocalPay.
+3. **Add receiving accounts** for supported payment providers.
+4. **Enable checkouts** from your website or app.
+5. **Monitor deposits & verifications** through the portal.
+6. **Track funded payments** and manage records.
+7. **Review statuses**, search records, and manage account settings.
+
+---
+
+## 🛠️ Tech Stack
+
+- **TypeScript** (97.7%)
+- **CSS** (2%)
+- **JavaScript** (0.3%)
+
+---
+
+## ⚡ Getting Started
+
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/oneshotEFA/LocalPay-Admin-Panel.git
+   cd LocalPay-Admin-Panel
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Run locally**
+   ```bash
+   npm start
+   # or
+   yarn start
+   ```
+   Visit [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 📂 Project Structure
+
+```
+src/
+ ├─ components/     # UI components
+ └─ utils/          # Utility scripts
+  .....
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🤝 Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Contributions are welcome! Open a pull request or create an issue for suggestions and feature requests.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📄 License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Distributed under the MIT License. See [`LICENSE`](./LICENSE) for details.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**LocalPay Admin Panel** — Made with ❤️ for businesses across Ethiopia  
+by [oneshotEFA](https://github.com/oneshotEFA)
