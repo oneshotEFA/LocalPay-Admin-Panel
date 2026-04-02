@@ -2,20 +2,25 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { mockTransactions } from "@/lib/mock/data";
+import { useTransaction } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, CheckCircle2, XCircle } from "lucide-react";
-// import { useTransaction } from "@/lib/api"; // ← connect when ready
 
-const fmt = (n: number) => new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB", maximumFractionDigits: 0 }).format(n);
+const fmt = (n: number) =>
+  new Intl.NumberFormat("en-ET", {
+    style: "currency",
+    currency: "ETB",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 export default function TransactionDetailPage({ params }: { params: Promise<{ transactionId: string }> }) {
   const { transactionId } = use(params);
-  const txn = mockTransactions.find((t) => t.id === transactionId);
-  if (!txn) notFound();
+  const { data: txn, isLoading, error } = useTransaction(transactionId);
+
+  if (isLoading) return <div className="text-sm text-slate-500">Loading transaction...</div>;
+  if (error || !txn) return <div className="text-sm text-rose-600">Failed to load transaction.</div>;
 
   const success = (txn.platformResponse as { success?: boolean })?.success === true;
 
@@ -47,7 +52,6 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ tr
             ["Funded Amount", fmt(txn.fundedAmount)],
             ["Platform User ID", txn.platformUserId],
             ["Deposit Request ID", txn.depositRequestId],
-            ["Client ID", txn.clientId ?? "—"],
             ["Funded At", format(new Date(txn.fundedAt), "MMM d, yyyy HH:mm:ss")],
           ].map(([k, v]) => (
             <div key={k} className="flex items-start justify-between gap-4 text-sm">

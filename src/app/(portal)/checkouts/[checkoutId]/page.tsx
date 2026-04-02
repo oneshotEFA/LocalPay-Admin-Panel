@@ -2,30 +2,35 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { mockCheckouts } from "@/lib/mock/data";
 import { CheckoutStatus } from "@/lib/types";
+import { useCheckout } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, CheckCircle2, XCircle, Clock, Zap, User, Link2 } from "lucide-react";
-// import { useCheckout } from "@/lib/api"; // ← connect when ready
 
-const fmtAmt = (n: number) => new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB", maximumFractionDigits: 0 }).format(n);
-const fmtDt  = (s: string) => format(new Date(s), "MMM d, yyyy HH:mm:ss");
+const fmtAmt = (n: number) =>
+  new Intl.NumberFormat("en-ET", {
+    style: "currency",
+    currency: "ETB",
+    maximumFractionDigits: 0,
+  }).format(n);
+const fmtDt = (s: string) => format(new Date(s), "MMM d, yyyy HH:mm:ss");
 
 const STATUS_META: Record<CheckoutStatus, { label: string; cls: string; icon: React.ElementType }> = {
-  [CheckoutStatus.PAID]:      { label: "Paid",      cls: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  [CheckoutStatus.PENDING]:   { label: "Pending",   cls: "bg-amber-100  text-amber-700  border-amber-200",    icon: Clock },
-  [CheckoutStatus.FAILED]:    { label: "Failed",    cls: "bg-rose-100   text-rose-700   border-rose-200",     icon: XCircle },
-  [CheckoutStatus.EXPIRED]:   { label: "Expired",   cls: "bg-rose-100   text-rose-700   border-rose-200",     icon: XCircle },
-  [CheckoutStatus.CANCELLED]: { label: "Cancelled", cls: "bg-slate-100  text-slate-600  border-slate-200",    icon: XCircle },
+  [CheckoutStatus.PAID]: { label: "Paid", cls: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  [CheckoutStatus.PENDING]: { label: "Pending", cls: "bg-amber-100  text-amber-700  border-amber-200", icon: Clock },
+  [CheckoutStatus.FAILED]: { label: "Failed", cls: "bg-rose-100   text-rose-700   border-rose-200", icon: XCircle },
+  [CheckoutStatus.EXPIRED]: { label: "Expired", cls: "bg-rose-100   text-rose-700   border-rose-200", icon: XCircle },
+  [CheckoutStatus.CANCELLED]: { label: "Cancelled", cls: "bg-slate-100  text-slate-600  border-slate-200", icon: XCircle },
 };
 
 export default function CheckoutDetailPage({ params }: { params: Promise<{ checkoutId: string }> }) {
   const { checkoutId } = use(params);
-  const chk = mockCheckouts.find((c) => c.id === checkoutId);
-  if (!chk) notFound();
+  const { data: chk, isLoading, error } = useCheckout(checkoutId);
+
+  if (isLoading) return <div className="text-sm text-slate-500">Loading checkout...</div>;
+  if (error || !chk) return <div className="text-sm text-rose-600">Failed to load checkout.</div>;
 
   const meta = STATUS_META[chk.status];
   const Icon = meta.icon;
@@ -48,7 +53,6 @@ export default function CheckoutDetailPage({ params }: { params: Promise<{ check
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
-        {/* Payment Info */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800">Payment Details</CardTitle>
@@ -70,7 +74,6 @@ export default function CheckoutDetailPage({ params }: { params: Promise<{ check
           </CardContent>
         </Card>
 
-        {/* Customer */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -91,7 +94,6 @@ export default function CheckoutDetailPage({ params }: { params: Promise<{ check
           </CardContent>
         </Card>
 
-        {/* Webhook */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -111,14 +113,13 @@ export default function CheckoutDetailPage({ params }: { params: Promise<{ check
               {chk.webhookResponse && (
                 <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
                   <p className="text-xs text-slate-500 font-medium mb-1">Response Payload</p>
-                  <pre className="text-xs font-mono text-slate-700 overflow-x-auto">{JSON.stringify(JSON.parse(chk.webhookResponse), null, 2)}</pre>
+                  <pre className="text-xs font-mono text-slate-700 overflow-x-auto">{JSON.stringify(typeof chk.webhookResponse === "string" ? JSON.parse(chk.webhookResponse) : chk.webhookResponse, null, 2)}</pre>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Redirect URLs */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -136,15 +137,14 @@ export default function CheckoutDetailPage({ params }: { params: Promise<{ check
         </Card>
       </div>
 
-      {chk.depositRequest && (
+      {chk.deposit && (
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800">Linked Deposit</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <Link href={`/deposits/${chk.depositRequest.id}`}
-              className="inline-flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-700 hover:underline">
-              {chk.depositRequest.id}
+            <Link href={`/deposits/${chk.deposit.id}`} className="inline-flex items-center gap-2 text-sm font-mono text-blue-600 hover:text-blue-700 hover:underline">
+              {chk.deposit.id}
             </Link>
           </CardContent>
         </Card>

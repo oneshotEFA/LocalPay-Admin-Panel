@@ -1,25 +1,30 @@
-/**
- * HabeshaUnlocker Portal — Centralized API Client
- * All requests go through here. Connect your NestJS backend by setting NEXT_PUBLIC_API_URL.
- */
+import type {
+  ClientReceivingAccount,
+  DepositRequest,
+  GatewayCheckout,
+  PaymentMethod,
+  Transaction,
+  Verification,
+  Receipt,
+  CrawlResult,
+} from "../types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+const DEFAULT_CLIENT_ID =
+  process.env.NEXT_PUBLIC_ADMIN_CLIENT_ID ?? "client-1234-5678";
 
 export class ApiError extends Error {
   constructor(
     public status: number,
     public code: string,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
   }
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: "include",
@@ -40,198 +45,45 @@ async function request<T>(
     throw new ApiError(res.status, code, message);
   }
 
-  // 204 No Content
   if (res.status === 204) return undefined as T;
 
   return res.json() as Promise<T>;
 }
 
-// ─── Auth ───────────────────────────────────────────────────────────────────
+function adminPath(path: string, clientId = DEFAULT_CLIENT_ID) {
+  return `/admin/clients/${clientId}${path}`;
+}
 
+function buildQuery(params: Record<string, string | number | undefined>) {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v != null && v !== "") q.set(k, String(v));
+  });
+  const query = q.toString();
+  return query ? `?${query}` : "";
+}
+
+// Auth remains untouched for when the backend auth endpoints are ready.
 export const authApi = {
-  /** POST /auth/login — returns session cookie */
   login: (body: { email: string; password: string }) =>
-    request<{ user: { id: string; email: string; name: string } }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+    request<{ user: { id: string; email: string; name: string } }>(
+      "/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    ),
 
-  /** POST /auth/logout — clears session */
-  logout: () =>
-    request<void>("/auth/logout", { method: "POST" }),
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
 
-  /** GET /auth/me — current session user */
   me: () =>
-    request<{ id: string; email: string; name: string; clientId: string }>("/auth/me"),
+    request<{ id: string; email: string; name: string; clientId: string }>(
+      "/auth/me",
+    ),
 
-  /** POST /auth/refresh — refresh JWT access token */
   refresh: () =>
     request<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
 };
-
-// ─── Overview / Stats ────────────────────────────────────────────────────────
-
-export interface OverviewStats {
-  totalCheckoutsMonth: number;
-  totalDepositsMonth: number;
-  totalFundedMonth: number;
-  pendingAttention: number;
-  successRatePercent: number;
-}
-
-export const overviewApi = {
-  /** GET /portal/stats — monthly summary stats */
-  stats: () => request<OverviewStats>("/portal/stats"),
-};
-
-// ─── Checkouts ───────────────────────────────────────────────────────────────
-
-export interface CheckoutListParams {
-  page?: number;
-  limit?: number;
-  status?: string;
-  search?: string;
-  from?: string;
-  to?: string;
-}
-
-export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-}
-
-export const checkoutsApi = {
-  /** GET /portal/checkouts — paginated list */
-  list: (params: CheckoutListParams = {}) => {
-    const q = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => v != null && q.set(k, String(v)));
-    return request<PaginatedResponse<import("../types").GatewayCheckout>>(
-      `/portal/checkouts?${q}`
-    );
-  },
-
-  /** GET /portal/checkouts/:id — single checkout with deposit relation */
-  get: (id: string) =>
-    request<import("../types").GatewayCheckout>(`/portal/checkouts/${id}`),
-};
-
-// ─── Deposits ────────────────────────────────────────────────────────────────
-
-export interface DepositListParams {
-  page?: number;
-  limit?: number;
-  status?: string;
-  paymentMethod?: string;
-  search?: string;
-  checkoutId?: string;
-}
-
-export const depositsApi = {
-  /** GET /portal/deposits — paginated list */
-  list: (params: DepositListParams = {}) => {
-    const q = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => v != null && q.set(k, String(v)));
-    return request<PaginatedResponse<import("../types").DepositRequest>>(
-      `/portal/deposits?${q}`
-    );
-  },
-
-  /** GET /portal/deposits/:id — single deposit with receipt, crawl, verifications */
-  get: (id: string) =>
-    request<import("../types").DepositRequest>(`/portal/deposits/${id}`),
-};
-
-// ─── Transactions ────────────────────────────────────────────────────────────
-
-export interface TransactionListParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  from?: string;
-  to?: string;
-}
-
-export const transactionsApi = {
-  /** GET /portal/transactions — paginated list of funded transactions */
-  list: (params: TransactionListParams = {}) => {
-    const q = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => v != null && q.set(k, String(v)));
-    return request<PaginatedResponse<import("../types").Transaction>>(
-      `/portal/transactions?${q}`
-    );
-  },
-
-  /** GET /portal/transactions/:id */
-  get: (id: string) =>
-    request<import("../types").Transaction>(`/portal/transactions/${id}`),
-};
-
-// ─── Receiving Accounts ──────────────────────────────────────────────────────
-
-export interface UpsertAccountBody {
-  paymentMethod: string;
-  accountName: string;
-  accountNumber: string;
-  isActive?: boolean;
-}
-
-export const accountsApi = {
-  /** GET /portal/accounts — all receiving accounts for this client */
-  list: () =>
-    request<import("../types").ClientReceivingAccount[]>("/portal/accounts"),
-
-  /** POST /portal/accounts — create new receiving account */
-  create: (body: UpsertAccountBody) =>
-    request<import("../types").ClientReceivingAccount>("/portal/accounts", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  /** PATCH /portal/accounts/:id — update account name/number */
-  update: (id: string, body: Partial<UpsertAccountBody>) =>
-    request<import("../types").ClientReceivingAccount>(`/portal/accounts/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    }),
-
-  /** PATCH /portal/accounts/:id/toggle — toggle isActive */
-  toggle: (id: string) =>
-    request<import("../types").ClientReceivingAccount>(`/portal/accounts/${id}/toggle`, {
-      method: "PATCH",
-    }),
-};
-
-// ─── API Keys ─────────────────────────────────────────────────────────────────
-
-export interface CreateApiKeyBody {
-  label: string;
-}
-
-export interface CreatedApiKeyResponse extends import("../types").GatewayApiKey {
-  /** Only returned once on creation */
-  apiSecret: string;
-}
-
-export const apiKeysApi = {
-  /** GET /portal/api-keys — list all keys (secrets masked) */
-  list: () =>
-    request<import("../types").GatewayApiKey[]>("/portal/api-keys"),
-
-  /** POST /portal/api-keys — generate new key pair */
-  create: (body: CreateApiKeyBody) =>
-    request<CreatedApiKeyResponse>("/portal/api-keys", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  /** DELETE /portal/api-keys/:id — revoke key */
-  revoke: (id: string) =>
-    request<void>(`/portal/api-keys/${id}`, { method: "DELETE" }),
-};
-
-// ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface ClientProfileResponse {
   id: string;
@@ -240,56 +92,274 @@ export interface ClientProfileResponse {
   logoUrl: string | null;
   webhookUrl: string | null;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface UpdateWebhookBody {
-  webhookUrl: string;
+export interface OverviewStats {
+  monthStart: string;
+  totalApiKeys: number;
+  activeApiKeys: number;
+  totalAccounts: number;
+  activeAccounts: number;
+  checkoutsThisMonth: number;
+  pendingCheckouts: number;
+  depositsThisMonth: number;
+  pendingDeposits: number;
+  fundedTransactionsThisMonth: number;
+  fundedAmountThisMonth: number;
 }
 
-export interface UpdateBrandingBody {
-  name?: string;
-  logoUrl?: string;
-  theme?: "light" | "dark";
+export interface DashboardTransaction extends Transaction {
+  deposit: DepositRequest | null;
 }
 
-export interface NotificationSettingsBody {
-  depositVerification?: boolean;
-  depositVerificationChannel?: "email" | "webhook" | "sms";
-  fundedTransaction?: boolean;
-  receiptFailure?: boolean;
+export interface DashboardResponse {
+  client: ClientProfileResponse;
+  overview: OverviewStats;
+  recentTransactions: DashboardTransaction[];
 }
 
-export const settingsApi = {
-  /** GET /portal/settings — client profile + config */
-  get: () =>
-    request<ClientProfileResponse & { adminConfig: import("../types").AdminConfig[] }>(
-      "/portal/settings"
+export interface CheckoutListParams extends Record<
+  string,
+  string | number | undefined
+> {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface DepositListParams extends Record<
+  string,
+  string | number | undefined
+> {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  paymentMethod?: string;
+  search?: string;
+  checkoutId?: string;
+}
+
+export interface TransactionListParams extends Record<
+  string,
+  string | number | undefined
+> {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface ApiKeyListItem {
+  id: string;
+  label: string | null;
+  isActive: boolean;
+  apiKeyPreview: string;
+  apiSecretPreview: string;
+  lastUsedAt: string | null;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+export interface ApiKeysListResponse {
+  client: ClientProfileResponse;
+  total: number;
+  items: ApiKeyListItem[];
+}
+
+export interface CreateApiKeyBody {
+  label: string;
+}
+
+export interface CreatedApiKeyResponse {
+  item: ApiKeyListItem;
+  credentials: {
+    apiKey: string;
+    apiSecret: string;
+  };
+}
+
+export interface RevokeApiKeyResponse {
+  item: ApiKeyListItem;
+}
+
+export interface UpsertAccountBody {
+  paymentMethod?: PaymentMethod;
+  accountName?: string;
+  accountNumber?: string;
+  isActive?: boolean;
+}
+
+export interface AccountsListResponse {
+  client: ClientProfileResponse;
+  total: number;
+  items: ClientReceivingAccount[];
+}
+
+export interface AccountMutationResponse {
+  item: ClientReceivingAccount;
+}
+
+type RawReceipt = Receipt;
+type RawCrawlResult = CrawlResult;
+type RawVerification = Verification;
+
+type DepositUser = {
+  authId: string;
+  email: string | null;
+  externalServiceId?: string | null;
+  platformAccountId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  username: string | null;
+};
+
+export interface DepositListItem extends Omit<
+  DepositRequest,
+  "clientId" | "receipt" | "verifications" | "crawlResult" | "checkout"
+> {
+  user?: DepositUser;
+  checkout?: {
+    id: string;
+    invoiceId: string;
+    status: string;
+  } | null;
+  transaction?: Transaction | null;
+}
+
+export interface DepositDetailItem extends Omit<
+  DepositRequest,
+  "clientId" | "receipt" | "verifications" | "crawlResult" | "checkout"
+> {
+  user: DepositUser;
+  receipt: RawReceipt | null;
+  crawlResult: RawCrawlResult | null;
+  verifications: RawVerification[];
+  checkout: {
+    id: string;
+    invoiceId: string;
+    status: string;
+  } | null;
+  transaction: Transaction | null;
+}
+
+export interface CheckoutListItem extends Omit<
+  GatewayCheckout,
+  "depositRequest"
+> {
+  deposit?: DepositListItem | null;
+}
+
+export interface CheckoutDetailItem extends Omit<
+  GatewayCheckout,
+  "depositRequest"
+> {
+  deposit: DepositDetailItem | null;
+}
+
+export interface TransactionListItem extends Transaction {
+  deposit?: DepositListItem | null;
+}
+
+export interface TransactionDetailItem extends Transaction {
+  deposit: DepositDetailItem | null;
+}
+
+export const overviewApi = {
+  dashboard: (clientId?: string) =>
+    request<DashboardResponse>(adminPath("/dashboard", clientId)),
+};
+
+export const apiKeysApi = {
+  list: (clientId?: string) =>
+    request<ApiKeysListResponse>(adminPath("/api-keys", clientId)),
+
+  create: (body: CreateApiKeyBody, clientId?: string) =>
+    request<CreatedApiKeyResponse>(adminPath("/api-keys", clientId), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  revoke: (id: string, clientId?: string) =>
+    request<RevokeApiKeyResponse>(
+      adminPath(`/api-keys/${id}/revoke`, clientId),
+      {
+        method: "POST",
+      },
+    ),
+};
+
+export const accountsApi = {
+  list: (clientId?: string) =>
+    request<AccountsListResponse>(adminPath("/accounts", clientId)),
+
+  create: (body: UpsertAccountBody, clientId?: string) =>
+    request<AccountMutationResponse>(adminPath("/accounts", clientId), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  update: (id: string, body: UpsertAccountBody, clientId?: string) =>
+    request<AccountMutationResponse>(adminPath(`/accounts/${id}`, clientId), {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
+  remove: (id: string, clientId?: string) =>
+    request<AccountMutationResponse>(adminPath(`/accounts/${id}`, clientId), {
+      method: "DELETE",
+    }),
+};
+
+export const checkoutsApi = {
+  list: (params: CheckoutListParams = {}, clientId?: string) =>
+    request<PaginatedResponse<CheckoutListItem>>(
+      `${adminPath("/checkouts", clientId)}${buildQuery(params)}`,
     ),
 
-  /** PATCH /portal/settings/webhook — update webhook URL */
-  updateWebhook: (body: UpdateWebhookBody) =>
-    request<ClientProfileResponse>("/portal/settings/webhook", {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    }),
+  get: (id: string, clientId?: string) =>
+    request<{ item: CheckoutDetailItem }>(
+      adminPath(`/checkouts/${id}`, clientId),
+    ),
+};
 
-  /** PATCH /portal/settings/branding — update name/logo/theme */
-  updateBranding: (body: UpdateBrandingBody) =>
-    request<ClientProfileResponse>("/portal/settings/branding", {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    }),
+export const depositsApi = {
+  list: (params: DepositListParams = {}, clientId?: string) =>
+    request<PaginatedResponse<DepositListItem>>(
+      `${adminPath("/deposits", clientId)}${buildQuery(params)}`,
+    ),
 
-  /** PATCH /portal/settings/notifications — update notification routing */
-  updateNotifications: (body: NotificationSettingsBody) =>
-    request<void>("/portal/settings/notifications", {
-      method: "PATCH",
-      body: JSON.stringify(body),
-    }),
+  get: (id: string, clientId?: string) =>
+    request<{ item: DepositDetailItem }>(
+      adminPath(`/deposits/${id}`, clientId),
+    ),
+};
 
-  /** POST /portal/settings/webhook/test — fire a test ping to webhook URL */
-  testWebhook: () =>
-    request<{ status: number; latencyMs: number }>("/portal/settings/webhook/test", {
-      method: "POST",
-    }),
+export const transactionsApi = {
+  list: (params: TransactionListParams = {}, clientId?: string) =>
+    request<PaginatedResponse<TransactionListItem>>(
+      `${adminPath("/transactions", clientId)}${buildQuery(params)}`,
+    ),
+
+  get: (id: string, clientId?: string) =>
+    request<{ item: TransactionDetailItem }>(
+      adminPath(`/transactions/${id}`, clientId),
+    ),
+};
+
+export const settingsApi = {
+  get: (clientId?: string) => overviewApi.dashboard(clientId),
 };

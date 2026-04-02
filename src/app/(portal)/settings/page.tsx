@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,14 +32,14 @@ export default function SettingsPage() {
     { label: "Attention", value: mockClientProfile.stats.pendingAttention, icon: Bell, alert: true },
   ];
 
-  const groupedConfigs = useMemo(() => {
+  const groupedConfigs = (() => {
     const map = new Map<string, typeof mockAdminConfig>();
     mockAdminConfig.forEach((c) => {
       const g = c.group ?? "general";
       map.set(g, [...(map.get(g) ?? []), c]);
     });
     return Array.from(map.entries());
-  }, []);
+  })();
 
   const handleSaveWebhook = async () => {
     setSavingWebhook(true);

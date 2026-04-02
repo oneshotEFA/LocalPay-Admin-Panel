@@ -2,31 +2,36 @@
 
 import { use } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { format } from "date-fns";
-import { mockDeposits } from "@/lib/mock/data";
 import { VerificationCheck } from "@/lib/types";
+import { useDeposit } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, CheckCircle2, XCircle, Clock, FileText, Link2, MessageSquare, Camera, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-// import { useDeposit } from "@/lib/api"; // ← connect when ready
 
-const fmt = (n: number) => new Intl.NumberFormat("en-ET", { style: "currency", currency: "ETB", maximumFractionDigits: 0 }).format(n);
+const fmt = (n: number) =>
+  new Intl.NumberFormat("en-ET", {
+    style: "currency",
+    currency: "ETB",
+    maximumFractionDigits: 0,
+  }).format(n);
 const fmtDt = (s: string) => format(new Date(s), "MMM d, yyyy HH:mm:ss");
 
 const CHECK_LABELS: Record<VerificationCheck, string> = {
-  [VerificationCheck.AMOUNT_MATCH]:            "Amount Match",
-  [VerificationCheck.TIMESTAMP_FRESHNESS]:     "Timestamp Freshness",
-  [VerificationCheck.TRANSACTION_ID_FORMAT]:   "TX ID Format",
-  [VerificationCheck.DUPLICATE_CHECK]:         "Duplicate Check",
-  [VerificationCheck.RECEIVER_ACCOUNT_MATCH]:  "Receiver Account",
+  [VerificationCheck.AMOUNT_MATCH]: "Amount Match",
+  [VerificationCheck.TIMESTAMP_FRESHNESS]: "Timestamp Freshness",
+  [VerificationCheck.TRANSACTION_ID_FORMAT]: "TX ID Format",
+  [VerificationCheck.DUPLICATE_CHECK]: "Duplicate Check",
+  [VerificationCheck.RECEIVER_ACCOUNT_MATCH]: "Receiver Account",
 };
 
 export default function DepositDetailPage({ params }: { params: Promise<{ depositId: string }> }) {
   const { depositId } = use(params);
-  const dep = mockDeposits.find((d) => d.id === depositId);
-  if (!dep) notFound();
+  const { data: dep, isLoading, error } = useDeposit(depositId);
+
+  if (isLoading) return <div className="text-sm text-slate-500">Loading deposit...</div>;
+  if (error || !dep) return <div className="text-sm text-rose-600">Failed to load deposit.</div>;
 
   const getStatusBadge = (status: string) => {
     if (status === "FUNDED") return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shadow-none gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Funded</Badge>;
@@ -54,7 +59,6 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
-        {/* Summary */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800">Summary</CardTitle>
@@ -63,7 +67,7 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
             {[
               ["Amount", fmt(dep.amount)],
               ["Method", dep.paymentMethod],
-              ["Checkout", dep.checkoutId ?? "—"],
+              ["Checkout", dep.checkout?.id ?? "—"],
               ["Retries", `${dep.retryCount} / ${dep.maxRetries}`],
               ["Created", fmtDt(dep.createdAt)],
               ["Updated", fmtDt(dep.updatedAt)],
@@ -85,7 +89,6 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
           </CardContent>
         </Card>
 
-        {/* Receipt */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3 border-b border-slate-100">
             <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
@@ -111,6 +114,11 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
                     <p className="text-xs text-slate-700 font-mono leading-relaxed">{dep.receipt.rawSmsText}</p>
                   </div>
                 )}
+                {dep.receipt.rawLinkUrl && (
+                  <a href={dep.receipt.rawLinkUrl} className="text-xs text-blue-600 hover:underline font-mono">
+                    {dep.receipt.rawLinkUrl}
+                  </a>
+                )}
               </div>
             ) : (
               <div className="flex items-center justify-center h-20 text-slate-400 text-sm">No receipt submitted</div>
@@ -118,7 +126,6 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
           </CardContent>
         </Card>
 
-        {/* Crawl Result */}
         {dep.crawlResult && (
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3 border-b border-slate-100">
@@ -133,7 +140,7 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
                 ["Receiver", dep.crawlResult.confirmedReceiverName ?? "—"],
                 ["Account", dep.crawlResult.confirmedReceiverAccount ?? "—"],
                 ["Status", dep.crawlResult.confirmedStatus ?? "—"],
-                ["Crawled At", dep.crawlResult.confirmedTimestamp ? fmtDt(dep.crawlResult.confirmedTimestamp) : "—"],
+                ["Crawled At", fmtDt(dep.crawlResult.crawledAt)],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-start justify-between gap-4">
                   <span className="text-slate-500">{k}</span>
@@ -144,7 +151,6 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
           </Card>
         )}
 
-        {/* Verifications */}
         {dep.verifications && dep.verifications.length > 0 && (
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="pb-3 border-b border-slate-100">
