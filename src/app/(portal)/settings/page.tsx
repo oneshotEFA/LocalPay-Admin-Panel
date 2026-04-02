@@ -204,7 +204,7 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[240px] text-sm text-muted-foreground">
+      <div className="flex items-center justify-center min-h-60 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />
         Loading profile…
       </div>
