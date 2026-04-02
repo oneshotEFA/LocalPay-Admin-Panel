@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -58,12 +59,7 @@ export default function LoginPage() {
         />
         <div className="relative flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="h-9 w-9 rounded-xl bg-sidebar-primary flex items-center justify-center shrink-0">
-              <ShieldCheck
-                className="h-4 w-4 text-sidebar-primary-foreground"
-                strokeWidth={2.5}
-              />
-            </div>
+            <BrandLogo className="h-9 w-9 shrink-0 border-sidebar-border/80" />
             <span className="font-semibold tracking-tight text-lg truncate">
               LocalPay
             </span>
@@ -106,12 +102,7 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center justify-center p-6 -mt-10">
           <div className="w-full max-w-sm space-y-8">
             <div className="lg:hidden flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
-                <ShieldCheck
-                  className="h-4 w-4 text-primary-foreground"
-                  strokeWidth={2.5}
-                />
-              </div>
+              <BrandLogo className="h-9 w-9 shrink-0" />
               <span className="font-semibold text-lg">LocalPay</span>
             </div>
             <div>

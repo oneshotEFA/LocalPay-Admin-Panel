@@ -1,10 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   X,
-  ShieldCheck,
   LayoutDashboard,
   KeyRound,
   Building2,
@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLogout } from "@/lib/api";
+import { WarningDialog } from "@/components/shared/WarningDialog";
+import { BrandLogo } from "@/components/shared/BrandLogo";
 
 const mainNav = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
@@ -82,11 +84,13 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
   const logout = useLogout();
   const handleLogout = async () => {
     await logout.mutateAsync();
+    setIsSignOutOpen(false);
     router.push("/login");
     router.refresh();
   };
@@ -106,9 +110,7 @@ export function Sidebar({
     >
       <div className="flex h-16 items-center justify-between gap-3 border-b border-sidebar-border/80 px-5 shrink-0">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/25">
-            <ShieldCheck className="h-5 w-5" strokeWidth={2.2} />
-          </div>
+          <BrandLogo className="h-10 w-10 shrink-0 border-sidebar-border/80" />
           <div className="min-w-0">
             <p className="truncate text-[15px] font-semibold tracking-tight">
               LocalPay
@@ -186,7 +188,7 @@ export function Sidebar({
           </Link>
           <button
             type="button"
-            onClick={() => handleLogout()}
+            onClick={() => setIsSignOutOpen(true)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive/90 transition-colors hover:bg-destructive/10"
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-transparent bg-destructive/5">
@@ -196,6 +198,17 @@ export function Sidebar({
           </button>
         </div>
       </div>
+
+      <WarningDialog
+        open={isSignOutOpen}
+        onOpenChange={setIsSignOutOpen}
+        title="Sign out"
+        description="You will need to sign in again to continue using the portal."
+        confirmLabel="Sign out"
+        onConfirm={handleLogout}
+        isPending={logout.isPending}
+        icon={<LogOut className="h-5 w-5" />}
+      />
     </aside>
   );
 }

@@ -36,6 +36,7 @@ import {
 import { AccountsPageSkeleton } from "@/components/shared/skeletons";
 import { QueryError } from "@/components/shared/QueryError";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { WarningDialog } from "@/components/shared/WarningDialog";
 
 const BANK_NAMES: Record<PaymentMethod, string> = {
   [PaymentMethod.CBE]: "Commercial Bank of Ethiopia",
@@ -472,35 +473,22 @@ export default function AccountsPage() {
         )}
       </div>
 
-      <Dialog
+      <WarningDialog
         open={!!accountToDelete}
-        onOpenChange={(o) => !o && setAccountToDelete(null)}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              Delete account
-            </DialogTitle>
-            <DialogDescription>
-              This removes the receiving account from your portal. Existing
-              deposits are unchanged.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setAccountToDelete(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleteAccount.isPending}
-            >
-              Delete account
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={(open) => !open && setAccountToDelete(null)}
+        title="Delete account"
+        description={
+          <>
+            This removes the receiving account from your portal. Existing
+            deposits are unchanged.
+          </>
+        }
+        confirmLabel="Delete account"
+        onConfirm={confirmDelete}
+        isPending={deleteAccount.isPending}
+        tone="destructive"
+        icon={<Trash2 className="h-5 w-5" />}
+      />
     </div>
   );
 }
