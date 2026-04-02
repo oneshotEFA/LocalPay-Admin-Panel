@@ -1,13 +1,15 @@
 "use client";
 
 import { use } from "react";
-import Link from "next/link";
 import { format } from "date-fns";
 import { VerificationCheck } from "@/lib/types";
 import { useDeposit } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, CheckCircle2, XCircle, Clock, FileText, Link2, MessageSquare, Camera, AlertTriangle } from "lucide-react";
+import { DetailPageSkeleton } from "@/components/shared/skeletons";
+import { QueryError } from "@/components/shared/QueryError";
+import { BackLink } from "@/components/shared/BackLink";
+import { CheckCircle2, XCircle, Clock, FileText, Link2, MessageSquare, Camera, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const fmt = (n: number) =>
@@ -28,40 +30,85 @@ const CHECK_LABELS: Record<VerificationCheck, string> = {
 
 export default function DepositDetailPage({ params }: { params: Promise<{ depositId: string }> }) {
   const { depositId } = use(params);
-  const { data: dep, isLoading, error } = useDeposit(depositId);
+  const { data: dep, error, refetch, isPending } = useDeposit(depositId);
 
-  if (isLoading) return <div className="text-sm text-slate-500">Loading deposit...</div>;
-  if (error || !dep) return <div className="text-sm text-rose-600">Failed to load deposit.</div>;
+  if (isPending && !dep) return <DetailPageSkeleton />;
+  if (error && !dep) {
+    return (
+      <QueryError
+        title="Couldn’t load deposit"
+        message="This deposit could not be retrieved. Try again."
+        onRetry={() => refetch()}
+      />
+    );
+  }
+  if (!dep) return null;
 
   const getStatusBadge = (status: string) => {
-    if (status === "FUNDED") return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shadow-none gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Funded</Badge>;
-    if (status === "VERIFIED") return <Badge className="bg-teal-100 text-teal-700 border-teal-200 shadow-none gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Verified</Badge>;
-    if (status.includes("REJECTED")) return <Badge className="bg-rose-100 text-rose-700 border-rose-200 shadow-none gap-1"><XCircle className="w-3.5 h-3.5" />Rejected</Badge>;
-    return <Badge className="bg-blue-100 text-blue-700 border-blue-200 shadow-none gap-1"><Clock className="w-3.5 h-3.5" />{status.replace(/_/g, " ")}</Badge>;
+    if (status === "FUNDED")
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-emerald-500/25 bg-emerald-500/10 font-medium text-emerald-700 shadow-none dark:text-emerald-400"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Funded
+        </Badge>
+      );
+    if (status === "VERIFIED")
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-teal-500/25 bg-teal-500/10 font-medium text-teal-800 shadow-none dark:text-teal-400"
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          Verified
+        </Badge>
+      );
+    if (status.includes("REJECTED"))
+      return (
+        <Badge
+          variant="outline"
+          className="gap-1 border-destructive/25 bg-destructive/10 font-medium text-destructive shadow-none"
+        >
+          <XCircle className="h-3.5 w-3.5" />
+          Rejected
+        </Badge>
+      );
+    return (
+      <Badge
+        variant="outline"
+        className="gap-1 border-primary/20 bg-primary/10 font-medium text-primary shadow-none"
+      >
+        <Clock className="h-3.5 w-3.5" />
+        {status.replace(/_/g, " ")}
+      </Badge>
+    );
   };
 
   const receiptIcon = dep.receipt?.type === "SMS" ? <MessageSquare className="h-4 w-4" /> :
     dep.receipt?.type === "LINK" ? <Link2 className="h-4 w-4" /> : <Camera className="h-4 w-4" />;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
-      <div>
-        <Link href="/deposits" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4 transition-colors">
-          <ChevronLeft className="h-4 w-4" />Deposits
-        </Link>
-        <div className="flex items-start gap-3 flex-wrap">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900 tracking-tight font-mono">{dep.id}</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Deposit Request</p>
-          </div>
-          <div className="mt-1">{getStatusBadge(dep.status)}</div>
+    <div className="max-w-4xl space-y-8 pb-10 animate-in fade-in duration-300">
+      <BackLink href="/deposits">Back to deposits</BackLink>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Deposit request
+          </p>
+          <h1 className="mt-1 break-all font-mono text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+            {dep.id}
+          </h1>
         </div>
+
+        <div className="shrink-0">{getStatusBadge(dep.status)}</div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="pb-3 border-b border-slate-100">
-            <CardTitle className="text-sm font-semibold text-slate-800">Summary</CardTitle>
+        <Card className="rounded-2xl border-border/80 shadow-sm">
+          <CardHeader className="pb-3 border-b border-border/80 bg-muted/20">
+            <CardTitle className="text-sm font-semibold text-foreground">Summary</CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-3">
             {[
@@ -73,8 +120,8 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
               ["Updated", fmtDt(dep.updatedAt)],
             ].map(([k, v]) => (
               <div key={k} className="flex items-start justify-between gap-4 text-sm">
-                <span className="text-slate-500 flex-shrink-0">{k}</span>
-                <span className="text-slate-900 font-medium text-right font-mono text-xs">{v}</span>
+                <span className="text-muted-foreground flex-shrink-0">{k}</span>
+                <span className="text-foreground font-medium text-right font-mono text-xs">{v}</span>
               </div>
             ))}
             {dep.rejectionReason && (
@@ -89,9 +136,9 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="pb-3 border-b border-slate-100">
-            <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+        <Card className="rounded-2xl border-border/80 shadow-sm">
+          <CardHeader className="pb-3 border-b border-border/80 bg-muted/20">
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
               {receiptIcon}Receipt
             </CardTitle>
           </CardHeader>
@@ -104,18 +151,18 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
                   ["Extracted TX ID", dep.receipt.extractedTransactionId ?? "—"],
                 ].map(([k, v]) => (
                   <div key={k} className="flex items-start justify-between gap-4">
-                    <span className="text-slate-500">{k}</span>
-                    <span className="text-slate-900 font-mono text-xs text-right">{v}</span>
+                    <span className="text-muted-foreground">{k}</span>
+                    <span className="text-foreground font-mono text-xs text-right">{v}</span>
                   </div>
                 ))}
                 {dep.receipt.rawSmsText && (
-                  <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                    <p className="text-xs text-slate-500 font-medium mb-1">Raw SMS</p>
+                  <div className="mt-3 p-3 rounded-xl border border-border/80 bg-muted/30">
+                    <p className="text-xs text-muted-foreground font-medium mb-1">Raw SMS</p>
                     <p className="text-xs text-slate-700 font-mono leading-relaxed">{dep.receipt.rawSmsText}</p>
                   </div>
                 )}
                 {dep.receipt.rawLinkUrl && (
-                  <a href={dep.receipt.rawLinkUrl} className="text-xs text-blue-600 hover:underline font-mono">
+                  <a href={dep.receipt.rawLinkUrl} className="font-mono text-xs text-primary hover:underline">
                     {dep.receipt.rawLinkUrl}
                   </a>
                 )}
@@ -127,9 +174,9 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
         </Card>
 
         {dep.crawlResult && (
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+          <Card className="rounded-2xl border-border/80 shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/80 bg-muted/20">
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <FileText className="h-4 w-4" />Crawl Result
               </CardTitle>
             </CardHeader>
@@ -143,8 +190,8 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
                 ["Crawled At", fmtDt(dep.crawlResult.crawledAt)],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-start justify-between gap-4">
-                  <span className="text-slate-500">{k}</span>
-                  <span className="text-slate-900 font-mono text-xs text-right">{v}</span>
+                  <span className="text-muted-foreground">{k}</span>
+                  <span className="text-foreground font-mono text-xs text-right">{v}</span>
                 </div>
               ))}
             </CardContent>
@@ -152,9 +199,9 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
         )}
 
         {dep.verifications && dep.verifications.length > 0 && (
-          <Card className="border-slate-200 shadow-sm">
-            <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm font-semibold text-slate-800">Verification Checks</CardTitle>
+          <Card className="rounded-2xl border-border/80 shadow-sm">
+            <CardHeader className="pb-3 border-b border-border/80 bg-muted/20">
+              <CardTitle className="text-sm font-semibold text-foreground">Verification Checks</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-2">
               {dep.verifications.map((v) => (
@@ -170,7 +217,7 @@ export default function DepositDetailPage({ params }: { params: Promise<{ deposi
                       {CHECK_LABELS[v.check] ?? v.check}
                     </p>
                     {v.detail && <p className="text-xs text-slate-600 mt-0.5">{v.detail}</p>}
-                    {v.reasonCode && <code className="text-[10px] font-mono text-slate-500 mt-1 block">{v.reasonCode}</code>}
+                    {v.reasonCode && <code className="text-[10px] font-mono text-muted-foreground mt-1 block">{v.reasonCode}</code>}
                   </div>
                 </div>
               ))}

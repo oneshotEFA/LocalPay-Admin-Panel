@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ShieldCheck } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,27 +28,18 @@ export default function LoginPage() {
       });
 
       if (error || !data?.session) {
-        toast({
-          title: "Access Denied",
-          description: error?.message || "Invalid credentials provided.",
-          variant: "destructive",
-        });
+        toast.error(
+          error?.message || "Invalid credentials provided.",
+        );
         setError(error?.message || "Invalid credentials provided.");
         return;
       }
 
-      toast({
-        title: "Authorization Successful",
-        description: "Loading secure terminal...",
-      });
+      toast.success("Signed in — redirecting…");
 
       router.push("/");
-    } catch (error: any) {
-      toast({
-        title: "System Error",
-        description: "An unexpected error occurred during login.",
-        variant: "destructive",
-      });
+    } catch {
+      toast.error("An unexpected error occurred during login.");
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -55,29 +47,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50">
-      <div className="hidden lg:flex lg:w-105 bg-slate-900 flex-col justify-between p-12 relative overflow-hidden shrink-0">
+    <div className="min-h-screen flex bg-background text-foreground">
+      <div className="hidden lg:flex lg:w-[26rem] xl:w-[28rem] bg-sidebar text-sidebar-foreground flex-col justify-between p-10 xl:p-12 relative overflow-hidden shrink-0 border-r border-sidebar-border">
         <div
-          className="absolute inset-0 opacity-[0.04]"
+          className="absolute inset-0 opacity-[0.06] dark:opacity-[0.12]"
           style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-            backgroundSize: "32px 32px",
+            backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+            backgroundSize: "28px 28px",
           }}
         />
-        <div className="relative flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-blue-500 flex items-center justify-center">
-            <ShieldCheck className="h-4 w-4 text-white" strokeWidth={2.5} />
+        <div className="relative flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 w-9 rounded-xl bg-sidebar-primary flex items-center justify-center shrink-0">
+              <ShieldCheck
+                className="h-4 w-4 text-sidebar-primary-foreground"
+                strokeWidth={2.5}
+              />
+            </div>
+            <span className="font-semibold tracking-tight text-lg truncate">
+              LocalPay
+            </span>
           </div>
-          <span className="text-white font-semibold tracking-tight text-lg">
-            LocalPay
-          </span>
         </div>
         <div className="relative space-y-6">
           <div>
-            <h2 className="text-2xl font-semibold text-white leading-snug">
+            <h2 className="text-2xl font-semibold leading-snug text-sidebar-foreground">
               Ethiopian payment verification, automated.
             </h2>
-            <p className="text-slate-400 mt-3 text-sm leading-relaxed">
+            <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
               Real-time verification of Telebirr, CBE, Abyssinia, NIB and eBirr
               deposits — with webhook delivery to your platform.
             </p>
@@ -89,107 +86,106 @@ export default function LoginPage() {
               "Multi-method: SMS, screenshot, link",
             ].map((f) => (
               <div key={f} className="flex items-center gap-3">
-                <div className="h-5 w-5 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                  <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                <div className="h-5 w-5 rounded-full bg-sidebar-accent flex items-center justify-center shrink-0 border border-sidebar-border">
+                  <div className="h-1.5 w-1.5 rounded-full bg-sidebar-primary" />
                 </div>
-                <span className="text-slate-300 text-sm">{f}</span>
+                <span className="text-sm text-sidebar-foreground/85">{f}</span>
               </div>
             ))}
           </div>
         </div>
-        <p className="relative text-xs text-slate-600">
+        <p className="relative text-xs text-muted-foreground">
           © {new Date().getFullYear()} LocalPay
         </p>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-sm space-y-8">
-          <div className="lg:hidden flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-slate-900 flex items-center justify-center">
-              <ShieldCheck className="h-4 w-4 text-white" strokeWidth={2.5} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex justify-end p-4">
+          <ThemeToggle />
+        </div>
+        <div className="flex-1 flex items-center justify-center p-6 -mt-10">
+          <div className="w-full max-w-sm space-y-8">
+            <div className="lg:hidden flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center">
+                <ShieldCheck
+                  className="h-4 w-4 text-primary-foreground"
+                  strokeWidth={2.5}
+                />
+              </div>
+              <span className="font-semibold text-lg">LocalPay</span>
             </div>
-            <span className="text-slate-900 font-semibold text-lg">
-              LocalPay
-            </span>
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">
-              Sign in
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">Client portal access</p>
-          </div>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="email"
-                className="text-sm font-medium text-slate-700"
-              >
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-10 bg-white border-slate-200"
-              />
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+              <p className="text-muted-foreground text-sm mt-1">
+                Client portal access
+              </p>
             </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label
-                  htmlFor="password"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Password
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">
+                  Email
                 </Label>
-                <a
-                  href="#"
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-11 bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </Label>
+                  <a
+                    href="#"
+                    className="text-xs text-primary font-medium hover:underline"
+                  >
+                    Forgot password?
+                  </a>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-11 bg-background"
+                />
+              </div>
+              {error && (
+                <div
+                  role="alert"
+                  className="text-sm text-destructive bg-destructive/10 border border-destructive/25 rounded-lg px-3 py-2.5"
                 >
-                  Forgot password?
-                </a>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-10 bg-white border-slate-200"
-              />
-            </div>
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
-                {error}
-              </div>
-            )}
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white font-medium"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in…
-                </>
-              ) : (
-                "Sign in"
+                  {error}
+                </div>
               )}
-            </Button>
-          </form>
-          <p className="text-xs text-center text-slate-400">
-            Need integration help?{" "}
-            <a
-              href="mailto:support@habeshatech.com"
-              className="text-slate-600 underline underline-offset-2 hover:text-slate-900"
-            >
-              Contact support
-            </a>
-          </p>
+              <Button type="submit" disabled={loading} className="w-full h-11">
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in…
+                  </>
+                ) : (
+                  "Sign in"
+                )}
+              </Button>
+            </form>
+            <p className="text-xs text-center text-muted-foreground">
+              Need integration help?{" "}
+              <a
+                href="mailto:support@habeshatech.com"
+                className="text-foreground underline underline-offset-2 hover:text-primary"
+              >
+                Contact support
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -10,7 +10,8 @@ import type {
   CrawlResult,
 } from "../types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+/** Browser calls this app’s Route Handler; the server forwards to the real backend. */
+const GATEWAY_PREFIX = "/api/gateway";
 
 export class ApiError extends Error {
   constructor(
@@ -29,7 +30,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   } = await supabase.auth.getSession();
 
   const token = session?.access_token;
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${GATEWAY_PREFIX}${path}`, {
     ...options,
     credentials: "include",
     headers: {
@@ -275,78 +276,78 @@ export interface TransactionDetailItem extends Transaction {
 }
 
 export const overviewApi = {
-  dashboard: (clientId?: string) =>
+  dashboard: (_clientId?: string) =>
     request<DashboardResponse>(adminPath("/dashboard")),
 };
 
 export const apiKeysApi = {
-  list: (clientId?: string) =>
+  list: (_clientId?: string) =>
     request<ApiKeysListResponse>(adminPath("/api-keys")),
 
-  create: (body: CreateApiKeyBody, clientId?: string) =>
+  create: (body: CreateApiKeyBody, _clientId?: string) =>
     request<CreatedApiKeyResponse>(adminPath("/api-keys"), {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  revoke: (id: string, clientId?: string) =>
+  revoke: (id: string, _clientId?: string) =>
     request<RevokeApiKeyResponse>(adminPath(`/api-keys/${id}/revoke`), {
       method: "POST",
     }),
 };
 
 export const accountsApi = {
-  list: (clientId?: string) =>
+  list: (_clientId?: string) =>
     request<AccountsListResponse>(adminPath("/accounts")),
 
-  create: (body: UpsertAccountBody, clientId?: string) =>
+  create: (body: UpsertAccountBody, _clientId?: string) =>
     request<AccountMutationResponse>(adminPath("/accounts"), {
       method: "POST",
       body: JSON.stringify(body),
     }),
 
-  update: (id: string, body: UpsertAccountBody, clientId?: string) =>
+  update: (id: string, body: UpsertAccountBody, _clientId?: string) =>
     request<AccountMutationResponse>(adminPath(`/accounts/${id}`), {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
 
-  remove: (id: string, clientId?: string) =>
+  remove: (id: string, _clientId?: string) =>
     request<AccountMutationResponse>(adminPath(`/accounts/${id}`), {
       method: "DELETE",
     }),
 };
 
 export const checkoutsApi = {
-  list: (params: CheckoutListParams = {}, clientId?: string) =>
+  list: (params: CheckoutListParams = {}, _clientId?: string) =>
     request<PaginatedResponse<CheckoutListItem>>(
       `${adminPath("/checkouts")}${buildQuery(params)}`,
     ),
 
-  get: (id: string, clientId?: string) =>
+  get: (id: string, _clientId?: string) =>
     request<{ item: CheckoutDetailItem }>(adminPath(`/checkouts/${id}`)),
 };
 
 export const depositsApi = {
-  list: (params: DepositListParams = {}, clientId?: string) =>
+  list: (params: DepositListParams = {}, _clientId?: string) =>
     request<PaginatedResponse<DepositListItem>>(
       `${adminPath("/deposits")}${buildQuery(params)}`,
     ),
 
-  get: (id: string, clientId?: string) =>
+  get: (id: string, _clientId?: string) =>
     request<{ item: DepositDetailItem }>(adminPath(`/deposits/${id}`)),
 };
 
 export const transactionsApi = {
-  list: (params: TransactionListParams = {}, clientId?: string) =>
+  list: (params: TransactionListParams = {}, _clientId?: string) =>
     request<PaginatedResponse<TransactionListItem>>(
       `${adminPath("/transactions")}${buildQuery(params)}`,
     ),
 
-  get: (id: string, clientId?: string) =>
+  get: (id: string, _clientId?: string) =>
     request<{ item: TransactionDetailItem }>(adminPath(`/transactions/${id}`)),
 };
 
 export const settingsApi = {
-  get: (clientId?: string) => overviewApi.dashboard(clientId),
+  get: (_clientId?: string) => overviewApi.dashboard(_clientId),
 };

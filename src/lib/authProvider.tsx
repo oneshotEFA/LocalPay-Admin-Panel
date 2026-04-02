@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase/client";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextType = {
-  user: any | null;
+  user: User | null;
   loading: boolean;
 };
 

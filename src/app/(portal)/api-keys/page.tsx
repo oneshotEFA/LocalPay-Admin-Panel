@@ -36,9 +36,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ListPageSkeleton } from "@/components/shared/skeletons";
+import { QueryError } from "@/components/shared/QueryError";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 export default function ApiKeysPage() {
-  const { data: apiKeysData, isLoading, error } = useApiKeys();
+  const { data: apiKeysData, error, refetch, isPending } = useApiKeys();
   const createApiKey = useCreateApiKey();
   const revokeApiKey = useRevokeApiKey();
 
@@ -101,35 +104,34 @@ export default function ApiKeysPage() {
   const fmt = (d: string | null) =>
     d ? format(new Date(d), "MMM d, yyyy") : "Never";
 
-  if (isLoading) {
-    return <div className="text-sm text-slate-500">Loading API keys...</div>;
+  if (!apiKeysData && isPending) {
+    return <ListPageSkeleton rows={6} />;
   }
 
-  if (error) {
+  if (!apiKeysData && error) {
     return (
-      <div className="text-sm text-rose-600">Failed to load API keys.</div>
+      <QueryError
+        title="Couldn’t load API keys"
+        message="We couldn’t reach the server. Try again in a moment."
+        onRetry={() => refetch()}
+      />
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-            API Keys
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Authenticate your application with the LocalPay gateway.
-          </p>
-        </div>
-        <Dialog open={isGenerateOpen} onOpenChange={closeGenerate}>
-          <DialogTrigger asChild>
-            <Button className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm self-start sm:self-auto">
-              <Plus className="mr-2 h-4 w-4" />
-              Generate Key
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+    <div className="space-y-8 pb-10 animate-in fade-in duration-300">
+      <PageHeader
+        title="API keys"
+        description="Issue and rotate credentials for your backend. Keys authenticate every call to the LocalPay gateway."
+        action={
+          <Dialog open={isGenerateOpen} onOpenChange={closeGenerate}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="rounded-xl shadow-sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Generate key
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
                 {generatedKey ? "Key Generated" : "Generate API Key"}
@@ -250,7 +252,6 @@ export default function ApiKeysPage() {
                   <Button
                     onClick={handleGenerate}
                     disabled={!newLabel.trim() || createApiKey.isPending}
-                    className="bg-slate-900 hover:bg-slate-800 text-white"
                   >
                     Generate
                   </Button>
@@ -258,7 +259,7 @@ export default function ApiKeysPage() {
               ) : (
                 <Button
                   onClick={() => setIsGenerateOpen(false)}
-                  className="w-full bg-slate-900 hover:bg-slate-800 text-white gap-2"
+                  className="w-full gap-2"
                 >
                   <Check className="h-4 w-4" />
                   I&apos;ve saved the secret key
@@ -267,22 +268,23 @@ export default function ApiKeysPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50/80 border-b border-slate-200 hover:bg-slate-50/80">
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide px-5 py-3">
+            <TableRow className="border-border/60 bg-muted/40 hover:bg-muted/40">
+              <TableHead className="px-5 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Label
               </TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide py-3">
-                Public Key
+              <TableHead className="py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Public key
               </TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide py-3 hidden md:table-cell">
-                Last Used
+              <TableHead className="hidden py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground md:table-cell">
+                Last used
               </TableHead>
-              <TableHead className="text-xs font-semibold text-slate-500 uppercase tracking-wide py-3 text-right pr-5">
+              <TableHead className="py-3.5 pr-5 text-right text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Actions
               </TableHead>
             </TableRow>
@@ -290,13 +292,13 @@ export default function ApiKeysPage() {
           <TableBody>
             {keys.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-40 text-center">
-                  <KeyRound className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                  <p className="text-sm font-medium text-slate-500">
-                    No API keys yet
+                <TableCell colSpan={4} className="h-44 text-center">
+                  <KeyRound className="mx-auto mb-2 h-9 w-9 text-muted-foreground/40" />
+                  <p className="text-sm font-medium text-foreground">
+                    No keys yet
                   </p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Generate your first key to get started
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Create a key to call the gateway from your servers.
                   </p>
                 </TableCell>
               </TableRow>
@@ -304,35 +306,34 @@ export default function ApiKeysPage() {
               keys.map((key) => (
                 <TableRow
                   key={key.id}
-                  className="border-slate-100 hover:bg-slate-50/60 transition-colors"
+                  className="border-border/50 transition-colors hover:bg-muted/35"
                 >
                   <TableCell className="px-5 py-4">
-                    <div className="font-medium text-slate-900 text-sm">
+                    <div className="text-sm font-medium text-foreground">
                       {key.label ?? "Untitled"}
                     </div>
-                    <div className="mt-1">
+                    <div className="mt-1.5">
                       <Badge
-                        className={`text-[10px] px-1.5 shadow-none ${
+                        variant="outline"
+                        className={`text-[10px] font-medium shadow-none ${
                           key.isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border-slate-200"
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                            : "text-muted-foreground"
                         }`}
                       >
                         {key.isActive ? "Active" : "Revoked"}
                       </Badge>
                     </div>
-                    <div className="text-xs text-slate-400 mt-1">
+                    <div className="mt-1 text-xs text-muted-foreground">
                       Created {fmt(key.createdAt)}
                     </div>
                   </TableCell>
                   <TableCell className="py-4">
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs font-mono bg-slate-100 text-slate-700 px-2 py-1 rounded">
-                        {key.apiKeyPreview}
-                      </code>
-                    </div>
+                    <code className="rounded-lg border border-border/80 bg-muted/50 px-2 py-1 font-mono text-xs text-foreground">
+                      {key.apiKeyPreview}
+                    </code>
                   </TableCell>
-                  <TableCell className="py-4 text-sm text-slate-500 hidden md:table-cell">
+                  <TableCell className="hidden py-4 text-sm text-muted-foreground md:table-cell">
                     {fmt(key.lastUsedAt)}
                   </TableCell>
                   <TableCell className="py-4 pr-5 text-right">
@@ -341,14 +342,14 @@ export default function ApiKeysPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                          className="h-8 rounded-lg text-xs text-destructive hover:bg-destructive/10"
                           onClick={() => setKeyToRevoke(key.id)}
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
+                          <Trash2 className="mr-1 h-3 w-3" />
                           Revoke
                         </Button>
                       ) : (
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           Revoked {fmt(key.revokedAt)}
                         </span>
                       )}
@@ -372,7 +373,7 @@ export default function ApiKeysPage() {
               Revoke Key
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             This action is permanent. Any service using this key will lose
             access immediately.
           </p>

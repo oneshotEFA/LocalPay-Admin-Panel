@@ -2,11 +2,32 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
-import { TrendingUp, ArrowUpRight, Activity, Download, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  TrendingUp,
+  ArrowUpRight,
+  Activity,
+  Download,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useDashboard, useCheckouts, useDeposits } from "@/lib/api";
+import { DashboardPageSkeleton } from "@/components/shared/skeletons";
+import { QueryError } from "@/components/shared/QueryError";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-ET", {
@@ -16,16 +37,27 @@ const fmt = (n: number) =>
   }).format(n);
 
 export default function OverviewPage() {
-  const { data: dashboard, isLoading, error } = useDashboard();
+  const {
+    data: dashboard,
+    isLoading,
+    error,
+    refetch,
+  } = useDashboard();
   const { data: recentCheckouts } = useCheckouts({ page: 1, pageSize: 5 });
   const { data: recentDeposits } = useDeposits({ page: 1, pageSize: 5 });
 
   if (isLoading) {
-    return <div className="text-sm text-slate-500">Loading dashboard...</div>;
+    return <DashboardPageSkeleton />;
   }
 
   if (error || !dashboard) {
-    return <div className="text-sm text-rose-600">Failed to load dashboard data.</div>;
+    return (
+      <QueryError
+        title="Couldn’t load dashboard"
+        message="We couldn’t refresh your overview. Please try again."
+        onRetry={() => refetch()}
+      />
+    );
   }
 
   const { client, overview } = dashboard;
@@ -63,14 +95,18 @@ export default function OverviewPage() {
 
   const getCheckoutBadge = (status: string) => {
     const map: Record<string, string> = {
-      PAID: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      PENDING: "bg-amber-100 text-amber-700 border-amber-200",
-      FAILED: "bg-rose-100 text-rose-700 border-rose-200",
-      EXPIRED: "bg-rose-100 text-rose-700 border-rose-200",
-      CANCELLED: "bg-slate-100 text-slate-600 border-slate-200",
+      PAID: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/25",
+      PENDING:
+        "bg-amber-500/15 text-amber-800 dark:text-amber-400 border-amber-500/25",
+      FAILED: "bg-destructive/15 text-destructive border-destructive/25",
+      EXPIRED: "bg-destructive/15 text-destructive border-destructive/25",
+      CANCELLED: "bg-muted text-muted-foreground border-border",
     };
     return (
-      <Badge className={`${map[status] ?? "bg-slate-100 text-slate-600"} shadow-none text-xs`}>
+      <Badge
+        variant="outline"
+        className={`${map[status] ?? "bg-muted text-muted-foreground"} shadow-none text-xs font-medium`}
+      >
         {status}
       </Badge>
     );
@@ -79,76 +115,99 @@ export default function OverviewPage() {
   const getDepositBadge = (status: string) => {
     if (status === "FUNDED" || status === "VERIFIED") {
       return (
-        <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 shadow-none text-xs">
+        <Badge
+          variant="outline"
+          className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/25 shadow-none text-xs font-medium"
+        >
           {status}
         </Badge>
       );
     }
     if (status.includes("REJECTED")) {
       return (
-        <Badge className="bg-rose-100 text-rose-700 border-rose-200 shadow-none text-xs">
+        <Badge
+          variant="outline"
+          className="bg-destructive/15 text-destructive border-destructive/25 shadow-none text-xs font-medium"
+        >
           Rejected
         </Badge>
       );
     }
     return (
-      <Badge className="bg-blue-100 text-blue-700 border-blue-200 shadow-none text-xs">
+      <Badge
+        variant="outline"
+        className="bg-primary/10 text-primary border-primary/20 shadow-none text-xs font-medium"
+      >
         {status.replace(/_/g, " ")}
       </Badge>
     );
   };
 
   return (
-    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-          Welcome back, {client.name}
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Here&apos;s your payment operations snapshot for this month.
-        </p>
+    <div className="space-y-10 pb-10 animate-in fade-in duration-300">
+      <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-6 shadow-sm sm:p-8">
+        <div
+          className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/[0.07] blur-3xl dark:bg-primary/10"
+          aria-hidden
+        />
+        <div className="relative max-w-3xl space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Overview
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2rem]">
+            Welcome back, {client.name}
+          </h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Live snapshot of checkouts, deposit volume, and funding for the
+            current month—same data as always, tuned for faster scanning.
+          </p>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((s) => (
           <Card
             key={s.label}
-            className={`border shadow-sm transition-shadow hover:shadow-md ${
-              s.alert ? "border-rose-200 bg-rose-50/40" : "border-slate-200"
+            className={`rounded-2xl border-border/80 shadow-sm transition-all hover:border-primary/15 hover:shadow-md ${
+              s.alert
+                ? "border-destructive/35 bg-destructive/[0.06]"
+                : "bg-card"
             }`}
           >
-            <CardContent className="pt-5 pb-5">
-              <div className="flex items-center justify-between mb-3">
+            <CardContent className="p-5 sm:p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <p
-                  className={`text-xs font-medium uppercase tracking-wide ${
-                    s.alert ? "text-rose-500" : "text-slate-500"
+                  className={`text-[11px] font-semibold uppercase tracking-wider ${
+                    s.alert ? "text-destructive" : "text-muted-foreground"
                   }`}
                 >
                   {s.label}
                 </p>
                 <div
-                  className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                    s.alert ? "bg-rose-100" : "bg-slate-100"
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    s.alert
+                      ? "bg-destructive/15 text-destructive"
+                      : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  <s.icon
-                    className={`h-4 w-4 ${s.alert ? "text-rose-500" : "text-slate-500"}`}
-                  />
+                  <s.icon className="h-4 w-4" strokeWidth={2} />
                 </div>
               </div>
               <p
-                className={`text-2xl font-bold tracking-tight ${
-                  s.alert ? "text-rose-700" : "text-slate-900"
+                className={`text-2xl font-bold tabular-nums tracking-tight sm:text-3xl ${
+                  s.alert ? "text-destructive" : "text-foreground"
                 }`}
               >
                 {s.value}
               </p>
               <p
-                className={`text-xs mt-1 flex items-center gap-1 ${
-                  s.alert ? "text-rose-500" : "text-emerald-600"
+                className={`mt-2 flex items-center gap-1.5 text-xs font-medium ${
+                  s.alert
+                    ? "text-destructive/90"
+                    : "text-emerald-600 dark:text-emerald-400"
                 }`}
               >
-                {!s.alert && <TrendingUp className="h-3 w-3" />}
+                {!s.alert && <TrendingUp className="h-3.5 w-3.5" />}
                 {s.delta}
               </p>
             </CardContent>
@@ -156,118 +215,134 @@ export default function OverviewPage() {
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-slate-100">
-            <CardTitle className="text-sm font-semibold text-slate-800">
-              Recent Checkouts
-            </CardTitle>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden rounded-2xl border-border/80 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/80 bg-muted/25 px-5 py-4">
+            <CardTitle className="text-sm font-semibold">Recent checkouts</CardTitle>
             <Link
               href="/checkouts"
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
             >
               View all <ArrowUpRight className="h-3 w-3" />
             </Link>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead className="text-xs text-slate-400 font-medium px-5 py-2.5">
-                    ID / Invoice
-                  </TableHead>
-                  <TableHead className="text-xs text-slate-400 font-medium py-2.5">
-                    Amount
-                  </TableHead>
-                  <TableHead className="text-xs text-slate-400 font-medium py-2.5">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-xs text-slate-400 font-medium py-2.5 text-right pr-5">
-                    Date
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(recentCheckouts?.items ?? []).map((chk) => (
-                  <TableRow key={chk.id} className="border-slate-100 hover:bg-slate-50/60 transition-colors">
-                    <TableCell className="px-5 py-3">
-                      <Link
-                        href={`/checkouts/${chk.id}`}
-                        className="font-medium text-slate-900 hover:text-blue-600 text-sm transition-colors"
-                      >
-                        {chk.id.slice(0, 12)}…
-                      </Link>
-                      <div className="text-xs text-slate-400 mt-0.5">{chk.invoiceId}</div>
-                    </TableCell>
-                    <TableCell className="py-3 text-sm font-semibold text-slate-800">
-                      {fmt(chk.amount)}
-                    </TableCell>
-                    <TableCell className="py-3">{getCheckoutBadge(chk.status)}</TableCell>
-                    <TableCell className="py-3 text-right text-xs text-slate-400 pr-5">
-                      {format(new Date(chk.createdAt), "MMM d, HH:mm")}
-                    </TableCell>
+            {(recentCheckouts?.items ?? []).length === 0 ? (
+              <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                No checkouts yet this period.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-0 hover:bg-transparent">
+                    <TableHead className="text-xs text-muted-foreground font-medium px-5 py-2.5">
+                      ID / Invoice
+                    </TableHead>
+                    <TableHead className="text-xs text-muted-foreground font-medium py-2.5">
+                      Amount
+                    </TableHead>
+                    <TableHead className="text-xs text-muted-foreground font-medium py-2.5">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-xs text-muted-foreground font-medium py-2.5 text-right pr-5">
+                      Date
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {(recentCheckouts?.items ?? []).map((chk) => (
+                    <TableRow
+                      key={chk.id}
+                      className="border-border/60 hover:bg-muted/40 transition-colors"
+                    >
+                      <TableCell className="px-5 py-3">
+                        <Link
+                          href={`/checkouts/${chk.id}`}
+                          className="font-medium text-foreground hover:text-primary text-sm transition-colors"
+                        >
+                          {chk.id.slice(0, 12)}…
+                        </Link>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {chk.invoiceId}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 text-sm font-semibold tabular-nums">
+                        {fmt(chk.amount)}
+                      </TableCell>
+                      <TableCell className="py-3">{getCheckoutBadge(chk.status)}</TableCell>
+                      <TableCell className="py-3 text-right text-xs text-muted-foreground pr-5 tabular-nums">
+                        {format(new Date(chk.createdAt), "MMM d, HH:mm")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b border-slate-100">
-            <CardTitle className="text-sm font-semibold text-slate-800">
-              Recent Deposits
-            </CardTitle>
+        <Card className="overflow-hidden rounded-2xl border-border/80 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between border-b border-border/80 bg-muted/25 px-5 py-4">
+            <CardTitle className="text-sm font-semibold">Recent deposits</CardTitle>
             <Link
               href="/deposits"
-              className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
             >
               View all <ArrowUpRight className="h-3 w-3" />
             </Link>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-0 hover:bg-transparent">
-                  <TableHead className="text-xs text-slate-400 font-medium px-5 py-2.5">
-                    ID / Method
-                  </TableHead>
-                  <TableHead className="text-xs text-slate-400 font-medium py-2.5">
-                    Amount
-                  </TableHead>
-                  <TableHead className="text-xs text-slate-400 font-medium py-2.5">
-                    Status
-                  </TableHead>
-                  <TableHead className="text-xs text-slate-400 font-medium py-2.5 text-right pr-5">
-                    Date
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(recentDeposits?.items ?? []).map((dep) => (
-                  <TableRow key={dep.id} className="border-slate-100 hover:bg-slate-50/60 transition-colors">
-                    <TableCell className="px-5 py-3">
-                      <Link
-                        href={`/deposits/${dep.id}`}
-                        className="font-medium text-slate-900 hover:text-blue-600 text-sm transition-colors"
-                      >
-                        {dep.id.slice(0, 12)}…
-                      </Link>
-                      <div className="text-xs text-slate-400 mt-0.5 font-medium">
-                        {dep.paymentMethod}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-3 text-sm font-semibold text-slate-800">
-                      {fmt(dep.amount)}
-                    </TableCell>
-                    <TableCell className="py-3">{getDepositBadge(dep.status)}</TableCell>
-                    <TableCell className="py-3 text-right text-xs text-slate-400 pr-5">
-                      {format(new Date(dep.createdAt), "MMM d, HH:mm")}
-                    </TableCell>
+            {(recentDeposits?.items ?? []).length === 0 ? (
+              <div className="px-5 py-12 text-center text-sm text-muted-foreground">
+                No deposits yet this period.
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-0 hover:bg-transparent">
+                    <TableHead className="text-xs text-muted-foreground font-medium px-5 py-2.5">
+                      ID / Method
+                    </TableHead>
+                    <TableHead className="text-xs text-muted-foreground font-medium py-2.5">
+                      Amount
+                    </TableHead>
+                    <TableHead className="text-xs text-muted-foreground font-medium py-2.5">
+                      Status
+                    </TableHead>
+                    <TableHead className="text-xs text-muted-foreground font-medium py-2.5 text-right pr-5">
+                      Date
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {(recentDeposits?.items ?? []).map((dep) => (
+                    <TableRow
+                      key={dep.id}
+                      className="border-border/60 hover:bg-muted/40 transition-colors"
+                    >
+                      <TableCell className="px-5 py-3">
+                        <Link
+                          href={`/deposits/${dep.id}`}
+                          className="font-medium text-foreground hover:text-primary text-sm transition-colors"
+                        >
+                          {dep.id.slice(0, 12)}…
+                        </Link>
+                        <div className="text-xs text-muted-foreground mt-0.5 font-medium">
+                          {dep.paymentMethod}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3 text-sm font-semibold tabular-nums">
+                        {fmt(dep.amount)}
+                      </TableCell>
+                      <TableCell className="py-3">{getDepositBadge(dep.status)}</TableCell>
+                      <TableCell className="py-3 text-right text-xs text-muted-foreground pr-5 tabular-nums">
+                        {format(new Date(dep.createdAt), "MMM d, HH:mm")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

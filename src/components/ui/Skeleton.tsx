@@ -1,3 +1,13 @@
-export default function Skeleton() {
-  return <div className="h-8 w-full animate-pulse rounded-xl bg-white/10" />;
+import type { ComponentProps } from "react";
+import { cn } from "@/lib/utils";
+
+function Skeleton({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-muted", className)}
+      {...props}
+    />
+  );
 }
+
+export { Skeleton };

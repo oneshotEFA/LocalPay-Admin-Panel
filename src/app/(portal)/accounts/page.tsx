@@ -33,6 +33,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { AccountsPageSkeleton } from "@/components/shared/skeletons";
+import { QueryError } from "@/components/shared/QueryError";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const BANK_NAMES: Record<PaymentMethod, string> = {
   [PaymentMethod.CBE]: "Commercial Bank of Ethiopia",
@@ -43,11 +46,16 @@ const BANK_NAMES: Record<PaymentMethod, string> = {
 };
 
 const BANK_COLORS: Record<PaymentMethod, string> = {
-  [PaymentMethod.CBE]: "bg-blue-100 text-blue-700",
-  [PaymentMethod.TELEBIRR]: "bg-emerald-100 text-emerald-700",
-  [PaymentMethod.EBIRR]: "bg-teal-100 text-teal-700",
-  [PaymentMethod.ABYSSINIA]: "bg-violet-100 text-violet-700",
-  [PaymentMethod.NIB]: "bg-orange-100 text-orange-700",
+  [PaymentMethod.CBE]:
+    "bg-blue-500/12 text-blue-700 dark:text-blue-400 border-blue-500/20",
+  [PaymentMethod.TELEBIRR]:
+    "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
+  [PaymentMethod.EBIRR]:
+    "bg-teal-500/12 text-teal-800 dark:text-teal-400 border-teal-500/20",
+  [PaymentMethod.ABYSSINIA]:
+    "bg-violet-500/12 text-violet-800 dark:text-violet-400 border-violet-500/20",
+  [PaymentMethod.NIB]:
+    "bg-orange-500/12 text-orange-800 dark:text-orange-400 border-orange-500/20",
 };
 
 const PAYMENT_METHODS = Object.values(PaymentMethod);
@@ -57,7 +65,7 @@ function isPaymentMethod(value: string): value is PaymentMethod {
 }
 
 export default function AccountsPage() {
-  const { data, isLoading, error } = useAccounts();
+  const { data, error, refetch, isPending } = useAccounts();
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const deleteAccount = useDeleteAccount();
@@ -69,6 +77,7 @@ export default function AccountsPage() {
     accountNumber: "",
   });
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
   const [newAccount, setNewAccount] = useState({
     paymentMethod: PaymentMethod.CBE,
     accountName: "",
@@ -154,10 +163,13 @@ export default function AccountsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const confirmDelete = async () => {
+    if (!accountToDelete) return;
+    const id = accountToDelete;
     try {
       await deleteAccount.mutateAsync(id);
       toast.success("Account deleted");
+      setAccountToDelete(null);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to delete account",
@@ -189,37 +201,37 @@ export default function AccountsPage() {
     });
   };
 
-  if (isLoading) {
-    return <div className="text-sm text-slate-500">Loading accounts...</div>;
+  if (!data && isPending) {
+    return <AccountsPageSkeleton />;
   }
 
-  if (error) {
+  if (!data && error) {
     return (
-      <div className="text-sm text-rose-600">Failed to load accounts.</div>
+      <QueryError
+        title="Couldn’t load accounts"
+        message="We couldn’t reach the server. Try again in a moment."
+        onRetry={() => refetch()}
+      />
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-            Receiving Accounts
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Bank accounts your users deposit money into for verification.
-          </p>
-        </div>
-        <Dialog open={isAddOpen} onOpenChange={handleAddDialogChange}>
-          <DialogTrigger asChild>
-            <Button
-              className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm self-start sm:self-auto"
-              disabled={availableMethods.length === 0}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Account
-            </Button>
-          </DialogTrigger>
+    <div className="space-y-8 pb-10 animate-in fade-in duration-300">
+      <PageHeader
+        title="Receiving accounts"
+        description="Bank and wallet destinations that appear on checkout instructions. One active account per payment rail."
+        action={
+          <Dialog open={isAddOpen} onOpenChange={handleAddDialogChange}>
+            <DialogTrigger asChild>
+              <Button
+                size="lg"
+                className="rounded-xl shadow-sm"
+                disabled={availableMethods.length === 0}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add account
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Add Receiving Account</DialogTitle>
@@ -288,27 +300,24 @@ export default function AccountsPage() {
               <Button variant="outline" onClick={() => setIsAddOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                onClick={handleAdd}
-                disabled={createAccount.isPending}
-                className="bg-slate-900 hover:bg-slate-800 text-white"
-              >
-                Save Account
+              <Button onClick={handleAdd} disabled={createAccount.isPending}>
+                Save account
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+        }
+      />
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {accounts.map((acc) => (
           <div
             key={acc.id}
-            className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition-colors"
+            className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors hover:border-primary/20"
           >
             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
               <div
-                className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${BANK_COLORS[acc.paymentMethod]}`}
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${BANK_COLORS[acc.paymentMethod]}`}
               >
                 {isMobile(acc.paymentMethod) ? (
                   <Smartphone className="h-5 w-5" />
@@ -319,14 +328,15 @@ export default function AccountsPage() {
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-semibold text-slate-900 text-sm">
+                  <h3 className="text-sm font-semibold text-foreground">
                     {BANK_NAMES[acc.paymentMethod]}
                   </h3>
                   <Badge
-                    className={`text-[10px] px-1.5 shadow-none ${
+                    variant="outline"
+                    className={`px-1.5 text-[10px] font-medium shadow-none ${
                       acc.isActive
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-slate-100 text-slate-500 border-slate-200"
+                        ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {acc.isActive ? (
@@ -375,11 +385,13 @@ export default function AccountsPage() {
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-4 mt-1.5">
-                    <span className="text-sm text-slate-600">
-                      <span className="text-slate-400 text-xs">Name </span>
-                      {acc.accountName}
+                    <span className="text-sm text-muted-foreground">
+                      <span className="text-xs">Name </span>
+                      <span className="font-medium text-foreground">
+                        {acc.accountName}
+                      </span>
                     </span>
-                    <span className="text-sm font-mono text-slate-800 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+                    <span className="rounded-lg border border-border/80 bg-muted/40 px-2 py-0.5 font-mono text-sm text-foreground">
                       {acc.accountNumber}
                     </span>
                   </div>
@@ -413,7 +425,7 @@ export default function AccountsPage() {
                       size="sm"
                       onClick={() => saveEdit(acc.id)}
                       disabled={updateAccount.isPending}
-                      className="h-8 bg-slate-900 hover:bg-slate-800 text-white"
+                      className="h-8"
                     >
                       <Save className="h-4 w-4 mr-1" />
                       Save
@@ -433,7 +445,7 @@ export default function AccountsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(acc.id)}
+                      onClick={() => setAccountToDelete(acc.id)}
                       disabled={deleteAccount.isPending}
                       className="h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
                     >
@@ -448,17 +460,47 @@ export default function AccountsPage() {
         ))}
 
         {accounts.length === 0 && (
-          <div className="text-center py-16 border border-dashed border-slate-200 rounded-xl">
-            <Building2 className="mx-auto h-10 w-10 text-slate-300 mb-3" />
-            <p className="font-medium text-slate-700 text-sm">
+          <div className="rounded-2xl border border-dashed border-border/80 bg-muted/15 py-16 text-center">
+            <Building2 className="mx-auto mb-3 h-11 w-11 text-muted-foreground/35" />
+            <p className="font-medium text-foreground text-sm">
               No receiving accounts configured
             </p>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto px-4">
               Add bank accounts to start accepting deposits.
             </p>
           </div>
         )}
       </div>
+
+      <Dialog
+        open={!!accountToDelete}
+        onOpenChange={(o) => !o && setAccountToDelete(null)}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete account
+            </DialogTitle>
+            <DialogDescription>
+              This removes the receiving account from your portal. Existing
+              deposits are unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setAccountToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleteAccount.isPending}
+            >
+              Delete account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import type { ElementType } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { CheckoutStatus } from "@/lib/types";
 import { useCheckouts } from "@/lib/api";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import {
   Table,
   TableBody,
@@ -16,17 +17,24 @@ import {
 } from "@/components/ui/table";
 import {
   Search,
-  Calendar,
   ArrowUpRight,
   CheckCircle2,
   Clock,
   XCircle,
   Zap,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ListPageSkeleton } from "@/components/shared/skeletons";
+import { QueryError } from "@/components/shared/QueryError";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { NativeSelect } from "@/components/ui/native-select";
+import { FilterDrawer } from "@/components/shared/FilterDrawer";
+import { ActiveFilterChips } from "@/components/shared/ActiveFilterChips";
+import { ListPagination } from "@/components/shared/ListPagination";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-ET", {
@@ -35,33 +43,41 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All statuses" },
+  ...Object.values(CheckoutStatus).map((s) => ({
+    value: s,
+    label: s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, " "),
+  })),
+];
+
 const STATUS_META: Record<
   string,
-  { label: string; cls: string; icon: React.ElementType }
+  { label: string; cls: string; icon: ElementType }
 > = {
   PAID: {
     label: "Paid",
-    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    cls: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
     icon: CheckCircle2,
   },
   PENDING: {
     label: "Pending",
-    cls: "bg-amber-50  text-amber-700  border-amber-200",
+    cls: "bg-amber-500/12 text-amber-800 dark:text-amber-400 border-amber-500/20",
     icon: Clock,
   },
   FAILED: {
     label: "Failed",
-    cls: "bg-rose-50   text-rose-700   border-rose-200",
+    cls: "bg-destructive/12 text-destructive border-destructive/20",
     icon: XCircle,
   },
   EXPIRED: {
     label: "Expired",
-    cls: "bg-rose-50   text-rose-700   border-rose-200",
+    cls: "bg-destructive/12 text-destructive border-destructive/20",
     icon: XCircle,
   },
   CANCELLED: {
     label: "Cancelled",
-    cls: "bg-slate-100 text-slate-600  border-slate-200",
+    cls: "bg-muted text-muted-foreground border-border",
     icon: XCircle,
   },
 };
@@ -70,114 +86,202 @@ export default function CheckoutsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [page, setPage] = useState(1);
+  const [filterOpen, setFilterOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
+
   const params = {
     page,
     pageSize: 10,
-    ...(debouncedSearch && { search: debouncedSearch }),
-    ...(statusFilter !== "ALL" && { status: statusFilter }),
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(statusFilter !== "ALL" ? { status: statusFilter } : {}),
   };
-  const { data, isLoading, error } = useCheckouts(params);
+  const { data, isLoading, error, refetch, isPending } = useCheckouts(params);
 
   const getStatusBadge = (status: CheckoutStatus) => {
     const meta = STATUS_META[status];
     if (!meta)
       return (
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-xs font-medium">
           {status}
         </Badge>
       );
     const Icon = meta.icon;
     return (
-      <Badge className={cn("shadow-none gap-1 text-xs", meta.cls)}>
-        <Icon className="w-3 h-3" />
+      <Badge
+        variant="outline"
+        className={cn("gap-1 border font-medium shadow-none text-xs", meta.cls)}
+      >
+        <Icon className="h-3 w-3" />
         {meta.label}
       </Badge>
     );
   };
-  console.log("Checkouts data:", data);
+
   const items = data?.items ?? [];
 
-  return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
-            Checkouts
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Payment sessions initiated by your platform.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          className="bg-white border-slate-200 text-slate-600 text-sm shadow-sm self-start sm:self-auto"
-        >
-          <Calendar className="mr-2 h-4 w-4 text-slate-400" />
-          Server filtered
-        </Button>
-      </div>
+  const activeFilterCount = useMemo(() => {
+    let n = 0;
+    if (debouncedSearch.trim()) n += 1;
+    if (statusFilter !== "ALL") n += 1;
+    return n;
+  }, [debouncedSearch, statusFilter]);
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
-          <Input
-            placeholder="Search ID, invoice, email…"
-            className="pl-9 h-9 bg-white border-slate-200 shadow-sm text-sm"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
-        </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {["ALL", ...Object.values(CheckoutStatus)].map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setStatusFilter(s);
+  const clearAllFilters = () => {
+    setSearch("");
+    setStatusFilter("ALL");
+    setPage(1);
+  };
+
+  const chipItems = useMemo(() => {
+    const chips: {
+      id: string;
+      label: string;
+      onRemove: () => void;
+    }[] = [];
+    if (debouncedSearch.trim()) {
+      chips.push({
+        id: "search",
+        label: `Search: “${debouncedSearch.trim().slice(0, 24)}${debouncedSearch.trim().length > 24 ? "…" : ""}”`,
+        onRemove: () => {
+          setSearch("");
+          setPage(1);
+        },
+      });
+    }
+    if (statusFilter !== "ALL") {
+      const opt = STATUS_OPTIONS.find((o) => o.value === statusFilter);
+      chips.push({
+        id: "status",
+        label: `Status: ${opt?.label ?? statusFilter}`,
+        onRemove: () => {
+          setStatusFilter("ALL");
+          setPage(1);
+        },
+      });
+    }
+    return chips;
+  }, [debouncedSearch, statusFilter]);
+
+  if (!data && isPending) {
+    return <ListPageSkeleton />;
+  }
+
+  if (!data && error) {
+    return (
+      <QueryError
+        title="Couldn’t load checkouts"
+        message="We couldn’t reach the server. Try again in a moment."
+        onRetry={() => refetch()}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-8 pb-8 animate-in fade-in duration-300">
+      <PageHeader
+        title="Checkouts"
+        description="Payment sessions your customers start from your product. Filter by status or search by invoice, email, or ID."
+      />
+
+      <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search invoice, email, checkout ID…"
+              className="h-11 border-border/80 bg-background pl-10 shadow-none"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
                 setPage(1);
               }}
-              className={cn(
-                "px-2.5 py-1 text-xs font-medium rounded-full border transition-colors",
-                statusFilter === s
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50",
-              )}
+            />
+          </div>
+
+          <div className="hidden min-w-[12rem] flex-1 max-w-xs lg:block">
+            <NativeSelect
+              label="Status"
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v);
+                setPage(1);
+              }}
+              options={STATUS_OPTIONS}
+            />
+          </div>
+
+          <div className="flex gap-2 lg:shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 flex-1 gap-2 lg:hidden"
+              onClick={() => setFilterOpen(true)}
             >
-              {s}
-            </button>
-          ))}
+              <SlidersHorizontal className="h-4 w-4" />
+              Filters
+              {activeFilterCount > 0 ? (
+                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary tabular-nums">
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </Button>
+            {activeFilterCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-11 text-muted-foreground max-lg:flex-1"
+                onClick={clearAllFilters}
+              >
+                Clear
+              </Button>
+            ) : null}
+          </div>
         </div>
+
+        <ActiveFilterChips items={chipItems} className="mt-4" />
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+      <FilterDrawer
+        open={filterOpen}
+        onOpenChange={setFilterOpen}
+        title="Filter checkouts"
+        description="Choose a status to narrow the list. Search uses the field above."
+        activeCount={activeFilterCount}
+        onClearAll={clearAllFilters}
+      >
+        <NativeSelect
+          label="Status"
+          value={statusFilter}
+          onValueChange={(v) => {
+            setStatusFilter(v);
+            setPage(1);
+          }}
+          options={STATUS_OPTIONS}
+        />
+      </FilterDrawer>
+
+      <div className="overflow-hidden rounded-2xl border border-border/80 bg-card shadow-sm">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50/80 border-b border-slate-200 hover:bg-slate-50/80">
+            <TableRow className="border-border/60 bg-muted/40 hover:bg-muted/40">
               {[
-                "Checkout ID",
-                "Invoice ID",
-                "Amount",
-                "Customer",
-                "Status",
-                "Webhook",
-                "Created",
-                "",
-              ].map((h, i) => (
+                { h: "Checkout", c: "px-5", w: "" },
+                { h: "Invoice", c: "", w: "" },
+                { h: "Amount", c: "", w: "" },
+                { h: "Customer", c: "hidden md:table-cell", w: "" },
+                { h: "Status", c: "", w: "" },
+                { h: "Webhook", c: "hidden lg:table-cell", w: "" },
+                { h: "Created", c: "pr-5 text-right", w: "" },
+                { h: "", c: "w-10", w: "" },
+              ].map((col) => (
                 <TableHead
-                  key={i}
+                  key={col.h}
                   className={cn(
-                    "text-xs font-semibold text-slate-500 uppercase tracking-wide py-3",
-                    i === 0 && "px-5 w-37.5",
-                    i === 3 && "hidden md:table-cell",
-                    i === 5 && "hidden lg:table-cell",
-                    i === 6 && "text-right pr-5",
-                    i === 7 && "w-10",
+                    "py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+                    col.c,
                   )}
                 >
-                  {h}
+                  {col.h}
                 </TableHead>
               ))}
             </TableRow>
@@ -187,116 +291,124 @@ export default function CheckoutsPage() {
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="h-36 text-center text-sm text-slate-500"
+                  className="h-32 text-center text-sm text-muted-foreground"
                 >
-                  Loading checkouts...
+                  Loading…
                 </TableCell>
               </TableRow>
             ) : error ? (
               <TableRow>
                 <TableCell
                   colSpan={8}
-                  className="h-36 text-center text-sm text-rose-600"
+                  className="h-32 text-center text-sm text-destructive"
                 >
-                  Failed to load checkouts.
+                  Something went wrong. Use Retry above.
                 </TableCell>
               </TableRow>
             ) : items.length > 0 ? (
               items.map((chk) => (
                 <TableRow
                   key={chk.id}
-                  className="group border-slate-100 hover:bg-slate-50/60 cursor-pointer relative transition-colors"
+                  className="group relative border-border/50 transition-colors hover:bg-muted/35"
                 >
                   <TableCell className="px-5 py-3.5">
                     <Link
                       href={`/checkouts/${chk.id}`}
-                      className="absolute inset-0 z-10"
+                      className="absolute inset-0 z-10 md:hidden"
                     >
                       <span className="sr-only">View</span>
                     </Link>
-                    <span className="font-mono text-xs text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
-                      {chk.id.slice(0, 12)}…
+                    <Link
+                      href={`/checkouts/${chk.id}`}
+                      className="relative z-20 hidden font-mono text-xs font-medium text-primary hover:underline md:inline"
+                    >
+                      {chk.id.slice(0, 14)}…
+                    </Link>
+                    <span className="font-mono text-xs text-muted-foreground md:hidden">
+                      {chk.id.slice(0, 10)}…
                     </span>
                   </TableCell>
-                  <TableCell className="py-3.5 text-sm font-medium text-slate-800">
+                  <TableCell className="py-3.5 text-sm font-medium">
                     {chk.invoiceId}
                   </TableCell>
-                  <TableCell className="py-3.5 text-sm font-semibold text-slate-900">
+                  <TableCell className="py-3.5 text-sm font-semibold tabular-nums">
                     {fmt(chk.amount)}
                   </TableCell>
-                  <TableCell className="py-3.5 text-sm text-slate-500 hidden md:table-cell">
+                  <TableCell className="hidden py-3.5 text-sm text-muted-foreground md:table-cell">
                     {chk.customerEmail}
                   </TableCell>
                   <TableCell className="py-3.5">
                     {getStatusBadge(chk.status)}
                   </TableCell>
-                  <TableCell className="py-3.5 hidden lg:table-cell">
+                  <TableCell className="hidden py-3.5 lg:table-cell">
                     {chk.webhookFiredAt ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
                         <Zap className="h-3 w-3" />
-                        Fired
+                        Delivered
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-400">—</span>
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
-                  <TableCell className="py-3.5 text-right text-xs text-slate-500 pr-5">
-                    {format(new Date(chk.createdAt), "MMM d")}
-                    <br />
-                    <span className="text-slate-400">
+                  <TableCell className="py-3.5 pr-5 text-right text-xs tabular-nums text-muted-foreground">
+                    <div>{format(new Date(chk.createdAt), "MMM d")}</div>
+                    <div className="text-[11px] opacity-80">
                       {format(new Date(chk.createdAt), "HH:mm")}
-                    </span>
+                    </div>
                   </TableCell>
                   <TableCell className="py-3.5 pr-3">
-                    <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                    <Link
+                      href={`/checkouts/${chk.id}`}
+                      className="relative z-20 hidden md:block"
+                    >
+                      <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-36 text-center">
-                  <div className="flex flex-col items-center justify-center text-slate-400">
-                    <Search className="h-7 w-7 mb-2 text-slate-300" />
-                    <p className="text-sm font-medium text-slate-500">
-                      No checkouts found
+                <TableCell colSpan={8} className="h-44 text-center">
+                  <div className="mx-auto flex max-w-sm flex-col items-center gap-2 px-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                      <Search className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">
+                      No checkouts match
                     </p>
-                    <p className="text-xs mt-0.5">
-                      Try adjusting your search or filters
+                    <p className="text-xs text-muted-foreground">
+                      Try clearing filters or search with a different keyword.
                     </p>
+                    {activeFilterCount > 0 ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-1"
+                        onClick={clearAllFilters}
+                      >
+                        Clear filters
+                      </Button>
+                    ) : null}
                   </div>
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </div>
 
-      <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>
-          Showing{" "}
-          <span className="font-medium text-slate-700">{items.length}</span> of{" "}
-          <span className="font-medium text-slate-700">{data?.total ?? 0}</span>{" "}
-          checkouts
-        </span>
-        <div className="flex gap-1.5">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1 || isLoading}
-            className="h-8 text-xs"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!data?.hasMore || isLoading}
-            className="h-8 text-xs"
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
+        <div className="border-t border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
+          <ListPagination
+            page={page}
+            totalLoaded={items.length}
+            totalKnown={data?.total ?? 0}
+            hasMore={data?.hasMore ?? false}
+            isLoading={isLoading}
+            onPrev={() => setPage((p) => Math.max(1, p - 1))}
+            onNext={() => setPage((p) => p + 1)}
+            noun="checkouts"
+            className="border-0 pt-0"
+          />
         </div>
       </div>
     </div>

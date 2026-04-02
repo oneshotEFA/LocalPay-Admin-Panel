@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, type ReactNode } from "react";
-import { PortalShell } from "@/components/layout/PortalShell";
+import { PortalShell } from "@/components/shared/layout/PortalShell";
 import { useAuth } from "@/lib/authProvider";
 import { useRouter } from "next/navigation";
 
