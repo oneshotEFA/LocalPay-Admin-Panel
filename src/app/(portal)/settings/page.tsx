@@ -12,8 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   User as UserIcon,
@@ -22,11 +23,18 @@ import {
   ShieldCheck,
   Settings2,
   CheckCircle2,
+  Code2,
+  Copy,
+  Terminal,
+  ExternalLink,
+  Globe,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authProvider";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 function profileDisplayName(u: User) {
   const meta = u.user_metadata as Record<string, unknown> | undefined;
@@ -46,281 +54,282 @@ function SettingsForm({ user }: { user: User }) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const handleSaveProfile = async () => {
-    setSavingProfile(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setSavingProfile(false);
-    toast.success("Profile updated successfully");
-  };
-
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    setChangingPassword(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setChangingPassword(false);
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    toast.success("Password updated");
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className="flex items-center justify-between">
-        <PageHeader
-          title="Account Settings"
-          description="Manage your public profile and security preferences."
-        />
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10">
-          <ShieldCheck className="h-4 w-4 text-primary" />
-          <span className="text-xs font-semibold text-primary">
-            Secure Account
-          </span>
-        </div>
-      </div>
+    <div className="mx-auto max-w-4xl space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <PageHeader
+        title="Account Settings"
+        description="Manage your profile and developer configurations."
+      />
 
-      <div className="grid gap-8">
-        {/* Profile Section */}
-        <Card className="border-border/60 shadow-sm overflow-hidden">
-          <CardHeader className="bg-muted/30 pb-6 border-b">
-            <div className="flex items-center gap-4">
-              <div className="relative group">
-                <Avatar className="h-20 w-20 border-4 border-background shadow-xl ring-1 ring-border">
-                  <AvatarFallback className="bg-primary/5 text-primary text-xl font-bold">
-                    {name?.charAt(0)?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-1 border shadow-sm">
-                  <div className="bg-emerald-500 rounded-full p-0.5">
-                    <CheckCircle2 className="h-3 w-3 text-white" />
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <CardTitle className="text-xl">{name}</CardTitle>
-                <CardDescription className="flex items-center gap-1.5">
-                  <Mail className="h-3 w-3" /> {email}
-                </CardDescription>
-              </div>
+      {/* 1. Profile Card (Always Visible) */}
+      <Card className="border-border/60 shadow-sm overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-6 border-b">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16 border-2 border-background shadow-md">
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                {name?.charAt(0)?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="space-y-1">
+              <CardTitle className="text-lg">{name}</CardTitle>
+              <CardDescription className="text-xs flex items-center gap-1">
+                <Mail className="h-3 w-3" /> {email}
+              </CardDescription>
             </div>
-          </CardHeader>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6 space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Display Name
+              </Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="bg-background"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Email
+              </Label>
+              <Input value={email} disabled className="bg-muted/30 italic" />
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button
+              size="sm"
+              onClick={() => setSavingProfile(true)}
+              disabled={savingProfile}
+            >
+              {savingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Save Profile"
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-          <CardContent className="pt-8 space-y-8">
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="space-y-1">
-                <Label className="text-sm font-bold">
-                  Personal Information
-                </Label>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  This information will be displayed on your invoices and public
-                  profile.
-                </p>
+      {/* 2. Tabs for Security & Integration */}
+      <Tabs defaultValue="security" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border">
+          <TabsTrigger value="security" className="gap-2">
+            <Lock className="h-4 w-4" /> Security
+          </TabsTrigger>
+          <TabsTrigger value="integration" className="gap-2">
+            <Zap className="h-4 w-4" /> Integration
+          </TabsTrigger>
+        </TabsList>
+
+        {/* SECURITY TAB */}
+        <TabsContent value="security">
+          <Card className="border-border/60 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-md">
+                Password & Authentication
+              </CardTitle>
+              <CardDescription>
+                Update your login credentials below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Current Password</Label>
+                <Input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
               </div>
-
-              <div className="md:col-span-2 space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="settings-name"
-                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                  >
-                    Display Name
-                  </Label>
-                  <div className="relative group">
-                    <UserIcon className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                    <Input
-                      id="settings-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="pl-9 bg-background focus-visible:ring-primary"
-                      placeholder="Enter your full name"
-                    />
-                  </div>
+                  <Label className="text-xs">New Password</Label>
+                  <Input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
                 </div>
-
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="settings-email"
-                    className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                  >
-                    Email Address
-                  </Label>
-                  <div className="relative group">
-                    <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="settings-email"
-                      value={email}
-                      disabled
-                      className="pl-9 bg-muted/30 text-muted-foreground border-dashed cursor-not-allowed"
-                    />
-                  </div>
-                  <p className="text-[10px] text-muted-foreground italic">
-                    Email change is managed via your identity provider.
+                  <Label className="text-xs">Confirm New</Label>
+                  <Input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => setChangingPassword(true)}
+                  disabled={!newPassword}
+                >
+                  {changingPassword ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Update Password"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* INTEGRATION TAB */}
+        {/* INTEGRATION TAB */}
+        <TabsContent value="integration" className="space-y-6">
+          <Card className="border-slate-800 bg-slate-950 text-slate-200 overflow-hidden">
+            <CardHeader className="border-b border-slate-800 bg-slate-900/50">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Terminal className="h-5 w-5 text-emerald-500" />
+                    API Gateway Config
+                  </CardTitle>
+                  <CardDescription className="text-slate-500 text-xs font-mono">
+                    Endpoint: https://api.yourdomain.com/gateway/checkout
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-6 space-y-6">
+              {/* Dynamic Key Management Shortcut */}
+              <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/30 p-6 flex flex-col items-center text-center space-y-4">
+                <div className="p-3 bg-emerald-500/10 rounded-full">
+                  <ShieldCheck className="h-6 w-6 text-emerald-500" />
+                </div>
+                <div className="space-y-1 max-w-sm">
+                  <h4 className="text-sm font-bold text-white">
+                    Manage Your API Credentials
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    For security, your <b>API Key</b> and <b>Secret Key</b> are
+                    managed on a separate page. Generate new keys or rotate
+                    existing ones to keep your integration secure.
                   </p>
                 </div>
-              </div>
-            </div>
-
-            <Separator className="opacity-50" />
-
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                onClick={handleSaveProfile}
-                disabled={savingProfile}
-                className="min-w-35 shadow-lg shadow-primary/20"
-              >
-                {savingProfile ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Update Profile"
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Section */}
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-6 border-b">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-amber-500/10 rounded-lg">
-                <Lock className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">Security & Privacy</CardTitle>
-                <CardDescription>
-                  Update your password to keep your account safe.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="pt-8">
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-bold">
-                  <Settings2 className="h-4 w-4 text-muted-foreground" />
-                  Password Policy
-                </div>
-                <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4">
-                  <li>Minimum 8 characters long</li>
-                  <li>At least one special character</li>
-                  <li>Avoid using common phrases</li>
-                </ul>
-              </div>
-
-              <div className="md:col-span-2 space-y-5">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="current-pw"
-                      className="text-xs font-semibold text-muted-foreground"
-                    >
-                      Current Password
-                    </Label>
-                    <Input
-                      id="current-pw"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      className="bg-background"
-                    />
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="new-pw"
-                        className="text-xs font-semibold text-muted-foreground"
-                      >
-                        New Password
-                      </Label>
-                      <Input
-                        id="new-pw"
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label
-                        htmlFor="confirm-pw"
-                        className="text-xs font-semibold text-muted-foreground"
-                      >
-                        Confirm New Password
-                      </Label>
-                      <Input
-                        id="confirm-pw"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
+                <Link href="/api-keys">
                   <Button
-                    variant="secondary"
-                    type="button"
-                    onClick={handleChangePassword}
-                    disabled={changingPassword || !newPassword}
-                    className="min-w-40"
+                    size="sm"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
                   >
-                    {changingPassword ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      "Change Password"
-                    )}
+                    Go to API Keys Page <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
+                </Link>
+              </div>
+
+              {/* Integration Guide Section */}
+              <div className="space-y-4 pt-4">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]"
+                  >
+                    POST
+                  </Badge>
+                  <span className="text-xs font-bold text-slate-300">
+                    Implementation Example
+                  </span>
+                </div>
+
+                <div className="rounded-md bg-black p-4 border border-slate-800">
+                  <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      Request Body
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-[10px] text-slate-400 hover:text-white"
+                      onClick={() =>
+                        copyToClipboard(
+                          JSON.stringify("requestExample", null, 2),
+                        )
+                      }
+                    >
+                      <Copy className="h-3 w-3 mr-1" /> Copy JSON
+                    </Button>
+                  </div>
+                  <pre className="text-[11px] font-mono leading-relaxed text-blue-300 overflow-x-auto">
+                    {`{
+  "api_key": "YOUR_API_KEY",
+  "api_secret": "YOUR_API_SECRET",
+  "amount": 1,
+  "product_name": "iTunes Gift Card",
+  "customer_name": "John Doe",
+  "customer_email": "john.doe@example.com",
+  "webhook_url": "https://yoursite.com/api/webhook",
+  "success_url": "https://yoursite.com/success",
+  "cancel_url": "https://yoursite.com/cancel",
+  "failed_url": "https://yoursite.com/failed",
+  "invoice_id": "inv_123456789",
+  "userId": "abebe"
+}`}
+                  </pre>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]"
+                    >
+                      RESPONSE
+                    </Badge>
+                    <span className="text-xs font-bold text-slate-300">
+                      Success Payload
+                    </span>
+                  </div>
+                  <div className="rounded-md bg-black p-4 border border-slate-800">
+                    <pre className="text-[11px] font-mono leading-relaxed text-emerald-400">
+                      {`{
+  "status": "success",
+  "checkoutID": "ea10a56c-fe4f-460c-a854-9e1a3221b120",
+  "checkoutUrl": "https://gateway.com/deposit/eyJhbGci..."
+}`}
+                    </pre>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
+// Small Badge helper since it's used in the template
+const Badge = ({ children, className, variant }: any) => (
+  <span
+    className={cn(
+      "px-1.5 py-0.5 rounded text-[10px] font-bold border",
+      className,
+    )}
+  >
+    {children}
+  </span>
+);
+
 export default function SettingsPage() {
   const { user, loading } = useAuth();
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="flex flex-col items-center justify-center min-h-100 space-y-4">
-        <div className="relative">
-          <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-          <Settings2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
-        </div>
-        <p className="text-sm font-medium text-muted-foreground animate-pulse">
-          Loading secure settings...
-        </p>
+      <div className="flex items-center justify-center min-h-100">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
-  }
 
-  if (!user) {
-    return (
-      <div className="max-w-md mx-auto mt-20 text-center space-y-4">
-        <div className="p-4 bg-muted rounded-full w-fit mx-auto">
-          <Lock className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <h2 className="text-xl font-bold">Authentication Required</h2>
-        <p className="text-sm text-muted-foreground">
-          Please sign in to access your account management dashboard.
-        </p>
-      </div>
-    );
-  }
-
-  return <SettingsForm key={user.id} user={user} />;
+  return user ? <SettingsForm key={user.id} user={user} /> : null;
 }

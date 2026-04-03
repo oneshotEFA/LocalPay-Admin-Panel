@@ -160,6 +160,37 @@ export interface PaginatedResponse<T> {
   hasMore: boolean;
 }
 
+function normalizePaginatedResponse<T>(
+  raw: Partial<PaginatedResponse<T>> | undefined,
+  fallbackPage = 1,
+  fallbackPageSize?: number,
+): PaginatedResponse<T> {
+  const items = Array.isArray(raw?.items) ? raw.items : [];
+  const total =
+    typeof raw?.total === "number" && Number.isFinite(raw.total)
+      ? raw.total
+      : items.length;
+  const page =
+    typeof raw?.page === "number" && raw.page > 0 ? raw.page : fallbackPage;
+  const pageSize =
+    typeof raw?.pageSize === "number" && raw.pageSize > 0
+      ? raw.pageSize
+      : fallbackPageSize && fallbackPageSize > 0
+        ? fallbackPageSize
+        : items.length;
+  const derivedHasMore =
+    pageSize > 0 ? page * pageSize < total : items.length < total;
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    hasMore:
+      typeof raw?.hasMore === "boolean" ? raw.hasMore || derivedHasMore : derivedHasMore,
+  };
+}
+
 export interface ApiKeyListItem {
   id: string;
   label: string | null;
@@ -319,9 +350,13 @@ export const accountsApi = {
 };
 
 export const checkoutsApi = {
-  list: (params: CheckoutListParams = {}, _clientId?: string) =>
-    request<PaginatedResponse<CheckoutListItem>>(
-      `${adminPath("/checkouts")}${buildQuery(params)}`,
+  list: async (params: CheckoutListParams = {}, _clientId?: string) =>
+    normalizePaginatedResponse(
+      await request<PaginatedResponse<CheckoutListItem>>(
+        `${adminPath("/checkouts")}${buildQuery(params)}`,
+      ),
+      params.page,
+      params.pageSize,
     ),
 
   get: (id: string, _clientId?: string) =>
@@ -329,9 +364,13 @@ export const checkoutsApi = {
 };
 
 export const depositsApi = {
-  list: (params: DepositListParams = {}, _clientId?: string) =>
-    request<PaginatedResponse<DepositListItem>>(
-      `${adminPath("/deposits")}${buildQuery(params)}`,
+  list: async (params: DepositListParams = {}, _clientId?: string) =>
+    normalizePaginatedResponse(
+      await request<PaginatedResponse<DepositListItem>>(
+        `${adminPath("/deposits")}${buildQuery(params)}`,
+      ),
+      params.page,
+      params.pageSize,
     ),
 
   get: (id: string, _clientId?: string) =>
@@ -339,9 +378,13 @@ export const depositsApi = {
 };
 
 export const transactionsApi = {
-  list: (params: TransactionListParams = {}, _clientId?: string) =>
-    request<PaginatedResponse<TransactionListItem>>(
-      `${adminPath("/transactions")}${buildQuery(params)}`,
+  list: async (params: TransactionListParams = {}, _clientId?: string) =>
+    normalizePaginatedResponse(
+      await request<PaginatedResponse<TransactionListItem>>(
+        `${adminPath("/transactions")}${buildQuery(params)}`,
+      ),
+      params.page,
+      params.pageSize,
     ),
 
   get: (id: string, _clientId?: string) =>

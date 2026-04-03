@@ -41,7 +41,6 @@ export default function TransactionsPage() {
   });
 
   const items = data?.items ?? [];
-
   const chipItems = useMemo(() => {
     if (!debouncedSearch.trim()) return [];
     const q = debouncedSearch.trim();
@@ -189,8 +188,8 @@ export default function TransactionsPage() {
                     </span>
                   </TableCell>
                   <TableCell className="hidden py-3.5 lg:table-cell">
-                    {(txn.platformResponse as { success?: boolean })?.success ===
-                    true ? (
+                    {(txn.platformResponse as { success?: boolean })
+                      ?.success === true ? (
                       <Badge
                         variant="outline"
                         className="border-emerald-500/25 bg-emerald-500/10 text-xs font-medium text-emerald-700 dark:text-emerald-400"
