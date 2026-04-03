@@ -198,7 +198,7 @@ export default function CheckoutsPage() {
             />
           </div>
 
-          <div className="hidden min-w-[12rem] flex-1 max-w-xs lg:block">
+          <div className="hidden min-w-48 flex-1 max-w-xs lg:block">
             <NativeSelect
               label="Status"
               value={statusFilter}

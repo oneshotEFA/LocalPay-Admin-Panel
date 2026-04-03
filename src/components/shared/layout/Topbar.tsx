@@ -25,7 +25,7 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
     )?.[1] ?? "Portal";
 
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b border-border/80 bg-background/75 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/65 sm:h-16 sm:px-6">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between border-b border-border/80 bg-background/75 px-4 backdrop-blur-xl supports-backdrop-filter:bg-background/65 sm:h-16 sm:px-6">
       <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
@@ -36,9 +36,6 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
           <Menu className="h-5 w-5" />
         </button>
         <div className="min-w-0 border-l border-border/60 pl-3 md:border-0 md:pl-0">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Screen
-          </p>
           <h1 className="truncate text-base font-semibold tracking-tight text-foreground sm:text-lg">
             {title}
           </h1>
