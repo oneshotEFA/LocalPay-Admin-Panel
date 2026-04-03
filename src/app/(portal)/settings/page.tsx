@@ -35,6 +35,7 @@ import { useAuth } from "@/lib/authProvider";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase/client";
 
 function profileDisplayName(u: User) {
   const meta = u.user_metadata as Record<string, unknown> | undefined;
@@ -57,6 +58,28 @@ function SettingsForm({ user }: { user: User }) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
+  };
+  const handlePasswordUpdate = async () => {
+    setChangingPassword(true);
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) {
+        toast.error(
+          error.message || "Your are Not authenticated please re-loading",
+        );
+        return;
+      }
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred while updating password");
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   return (
@@ -170,7 +193,7 @@ function SettingsForm({ user }: { user: User }) {
               <div className="flex justify-end pt-4">
                 <Button
                   variant="secondary"
-                  onClick={() => setChangingPassword(true)}
+                  onClick={() => handlePasswordUpdate()}
                   disabled={!newPassword}
                 >
                   {changingPassword ? (
