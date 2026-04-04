@@ -3,7 +3,8 @@
 import { type ReactNode, useState } from "react";
 import { Sidebar } from "@/components/shared/layout/Sidebar";
 import { Topbar } from "@/components/shared/layout/Topbar";
-export function PortalShell({ children }: { children: ReactNode }) {
+import { User } from "@supabase/supabase-js";
+export function PortalShell({ children,user }: { children: ReactNode,user:User|null }) {
   const [isNavOpen, setIsNavOpen] = useState(false);
 
   return (
@@ -11,7 +12,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
       <Sidebar className="hidden md:flex" />
 
       <div className="flex-1 flex flex-col md:pl-72 min-w-0">
-        <Topbar onOpenSidebar={() => setIsNavOpen(true)} />
+        <Topbar onOpenSidebar={() => setIsNavOpen(true)} user={user} />
         <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
           <div className="mx-auto w-full max-w-7xl">{children}</div>
         </main>
