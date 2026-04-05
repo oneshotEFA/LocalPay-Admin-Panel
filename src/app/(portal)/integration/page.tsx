@@ -126,7 +126,7 @@ function CodeBlock({
       </div>
       <pre
         className={cn(
-          "overflow-x-auto bg-[color-mix(in_oklab,var(--card)_82%,black_18%)] p-4 text-xs leading-6 text-[color-mix(in_oklab,var(--foreground)_88%,white_12%)] dark:bg-[color:color-mix(in_oklab,var(--card)_70%,black_30%)]",
+          "overflow-x-auto bg-[color-mix(in_oklab,var(--card)_82%,black_18%)] p-4 text-xs leading-6 text-[color-mix(in_oklab,var(--foreground)_88%,white_12%)] dark:bg-[color-mix(in_oklab,var(--card)_70%,black_30%)]",
           className,
         )}
       >
