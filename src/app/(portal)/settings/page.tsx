@@ -2,39 +2,30 @@
 
 import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import Link from "next/link";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
+  ArrowUpRight,
   Loader2,
-  User as UserIcon,
   Lock,
   Mail,
-  ShieldCheck,
   Settings2,
-  CheckCircle2,
-  Code2,
-  Copy,
-  Terminal,
-  ExternalLink,
-  Globe,
+  User as UserIcon,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authProvider";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
 
 function profileDisplayName(u: User) {
@@ -47,36 +38,42 @@ function profileDisplayName(u: User) {
 function SettingsForm({ user }: { user: User }) {
   const [name, setName] = useState(() => profileDisplayName(user));
   const email = user.email ?? "";
-
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
-  };
   const handlePasswordUpdate = async () => {
     setChangingPassword(true);
     if (newPassword !== confirmPassword) {
       toast.error("Passwords do not match");
+      setChangingPassword(false);
       return;
     }
+
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
+
       if (error) {
         toast.error(
-          error.message || "Your are Not authenticated please re-loading",
+          error.message || "You are not authenticated. Please reload.",
         );
         return;
       }
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred while updating password");
+
+      toast.success("Password updated");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while updating password",
+      );
     } finally {
       setChangingPassword(false);
     }
@@ -86,12 +83,11 @@ function SettingsForm({ user }: { user: User }) {
     <div className="mx-auto max-w-4xl space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <PageHeader
         title="Account Settings"
-        description="Manage your profile and developer configurations."
+        description="Manage your profile, password, and developer tools."
       />
 
-      {/* 1. Profile Card (Always Visible) */}
-      <Card className="border-border/60 shadow-sm overflow-hidden">
-        <CardHeader className="bg-muted/30 pb-6 border-b">
+      <Card className="border-border/70 shadow-sm">
+        <CardHeader className="border-b border-border/70 bg-muted/30 pb-6">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-2 border-background shadow-md">
               <AvatarFallback className="bg-primary/10 text-primary font-bold">
@@ -100,14 +96,15 @@ function SettingsForm({ user }: { user: User }) {
             </Avatar>
             <div className="space-y-1">
               <CardTitle className="text-lg">{name}</CardTitle>
-              <CardDescription className="text-xs flex items-center gap-1">
-                <Mail className="h-3 w-3" /> {email}
+              <CardDescription className="flex items-center gap-1 text-xs">
+                <Mail className="h-3 w-3" />
+                {email}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-6 space-y-4">
-          <div className="grid sm:grid-cols-2 gap-4">
+        <CardContent className="space-y-4 pt-6">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-muted-foreground">
                 Display Name
@@ -141,218 +138,135 @@ function SettingsForm({ user }: { user: User }) {
         </CardContent>
       </Card>
 
-      {/* 2. Tabs for Security & Integration */}
-      <Tabs defaultValue="security" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 border">
-          <TabsTrigger value="security" className="gap-2">
-            <Lock className="h-4 w-4" /> Security
-          </TabsTrigger>
-          <TabsTrigger value="integration" className="gap-2">
-            <Zap className="h-4 w-4" /> Integration
-          </TabsTrigger>
-        </TabsList>
-
-        {/* SECURITY TAB */}
-        <TabsContent value="security">
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-md">
-                Password & Authentication
-              </CardTitle>
-              <CardDescription>
-                Update your login credentials below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <Card className="border-border/70 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-muted/50 text-primary">
+                <Lock className="h-4 w-4" />
+              </span>
+              <div className="space-y-1">
+                <CardTitle>Password & Authentication</CardTitle>
+                <CardDescription>
+                  Update your login credentials below.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-xs">Current Password</Label>
+              <Input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-xs">Current Password</Label>
+                <Label className="text-xs">New Password</Label>
                 <Input
                   type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">New Password</Label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Confirm New</Label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Confirm New</Label>
+                <Input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
               </div>
-              <div className="flex justify-end pt-4">
-                <Button
-                  variant="secondary"
-                  onClick={() => handlePasswordUpdate()}
-                  disabled={!newPassword}
-                >
-                  {changingPassword ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Update Password"
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button
+                variant="secondary"
+                onClick={handlePasswordUpdate}
+                disabled={!newPassword || changingPassword}
+              >
+                {changingPassword ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* INTEGRATION TAB */}
-        {/* INTEGRATION TAB */}
-        <TabsContent value="integration" className="space-y-6">
-          <Card className="border-slate-800 bg-slate-950 text-slate-200 overflow-hidden">
-            <CardHeader className="border-b border-slate-800 bg-slate-900/50">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Terminal className="h-5 w-5 text-emerald-500" />
-                    API Gateway Config
-                  </CardTitle>
-                  <CardDescription className="text-slate-500 text-xs font-mono">
-                    Endpoint: https://api.yourdomain.com/gateway/checkout
-                  </CardDescription>
-                </div>
+        <Card className="border-border/70 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-muted/50 text-primary">
+                <Zap className="h-4 w-4" />
+              </span>
+              <div className="space-y-1">
+                <CardTitle>Integration Guide</CardTitle>
+                <CardDescription>
+                  Keep setup help and operational docs on a dedicated page.
+                </CardDescription>
               </div>
-            </CardHeader>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+              <p className="text-sm font-medium">What moved</p>
+              <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                Integration setup, configuration notes, code examples,
+                troubleshooting, and FAQ content now live outside Settings for
+                cleaner separation of concerns.
+              </p>
+            </div>
 
-            <CardContent className="pt-6 space-y-6">
-              {/* Dynamic Key Management Shortcut */}
-              <div className="rounded-xl border border-dashed border-slate-800 bg-slate-900/30 p-6 flex flex-col items-center text-center space-y-4">
-                <div className="p-3 bg-emerald-500/10 rounded-full">
-                  <ShieldCheck className="h-6 w-6 text-emerald-500" />
-                </div>
-                <div className="space-y-1 max-w-sm">
-                  <h4 className="text-sm font-bold text-white">
-                    Manage Your API Credentials
-                  </h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    For security, your <b>API Key</b> and <b>Secret Key</b> are
-                    managed on a separate page. Generate new keys or rotate
-                    existing ones to keep your integration secure.
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-background p-4">
+                <Settings2 className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Settings stay focused</p>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    Profile and security controls remain here without mixing in
+                    long-form product documentation.
                   </p>
                 </div>
-                <Link href="/api-keys">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
-                  >
-                    Go to API Keys Page <ExternalLink className="h-3.5 w-3.5" />
-                  </Button>
-                </Link>
               </div>
-
-              {/* Integration Guide Section */}
-              <div className="space-y-4 pt-4">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px]"
-                  >
-                    POST
-                  </Badge>
-                  <span className="text-xs font-bold text-slate-300">
-                    Implementation Example
-                  </span>
-                </div>
-
-                <div className="rounded-md bg-black p-4 border border-slate-800">
-                  <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      Request Body
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-[10px] text-slate-400 hover:text-white"
-                      onClick={() =>
-                        copyToClipboard(
-                          JSON.stringify("requestExample", null, 2),
-                        )
-                      }
-                    >
-                      <Copy className="h-3 w-3 mr-1" /> Copy JSON
-                    </Button>
-                  </div>
-                  <pre className="text-[11px] font-mono leading-relaxed text-blue-300 overflow-x-auto">
-                    {`{
-  "api_key": "YOUR_API_KEY",
-  "api_secret": "YOUR_API_SECRET",
-  "amount": 1,
-  "product_name": "iTunes Gift Card",
-  "customer_name": "John Doe",
-  "customer_email": "john.doe@example.com",
-  "webhook_url": "https://yoursite.com/api/webhook",
-  "success_url": "https://yoursite.com/success",
-  "cancel_url": "https://yoursite.com/cancel",
-  "failed_url": "https://yoursite.com/failed",
-  "invoice_id": "inv_123456789",
-  "userId": "abebe"
-}`}
-                  </pre>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]"
-                    >
-                      RESPONSE
-                    </Badge>
-                    <span className="text-xs font-bold text-slate-300">
-                      Success Payload
-                    </span>
-                  </div>
-                  <div className="rounded-md bg-black p-4 border border-slate-800">
-                    <pre className="text-[11px] font-mono leading-relaxed text-emerald-400">
-                      {`{
-  "status": "success",
-  "checkoutID": "ea10a56c-fe4f-460c-a854-9e1a3221b120",
-  "checkoutUrl": "https://gateway.com/deposit/eyJhbGci..."
-}`}
-                    </pre>
-                  </div>
+              <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-background p-4">
+                <UserIcon className="mt-0.5 h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">Docs scale better</p>
+                  <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                    The new page can hold provider guides, endpoint notes, and
+                    more help content without making this screen crowded.
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+
+            <Link
+              href="/integration"
+              className={buttonVariants({ className: "w-full sm:w-auto" })}
+            >
+              Open integration page
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
 
-// Small Badge helper since it's used in the template
-const Badge = ({ children, className, variant }: any) => (
-  <span
-    className={cn(
-      "px-1.5 py-0.5 rounded text-[10px] font-bold border",
-      className,
-    )}
-  >
-    {children}
-  </span>
-);
-
 export default function SettingsPage() {
   const { user, loading } = useAuth();
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-100">
+      <div className="flex min-h-100 items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
+  }
 
   return user ? <SettingsForm key={user.id} user={user} /> : null;
 }

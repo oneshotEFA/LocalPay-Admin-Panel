@@ -11,6 +11,7 @@ import {
   Receipt,
   Download,
   ArrowRightLeft,
+  PlugZap,
   Settings,
   LogOut,
   Sparkles,
@@ -27,6 +28,7 @@ const mainNav = [
   { name: "Checkouts", href: "/checkouts", icon: Receipt },
   { name: "Deposits", href: "/deposits", icon: Download },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
+  { name: "Integration", href: "/integration", icon: PlugZap },
 ];
 
 function NavLink({
