@@ -10,12 +10,7 @@ import {
   CheckCircle2,
   AlertTriangle,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   Table,
   TableBody,
@@ -24,10 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/Badge";
+
 import { useDashboard, useCheckouts, useDeposits } from "@/lib/api";
 import { DashboardPageSkeleton } from "@/components/shared/skeletons";
 import { QueryError } from "@/components/shared/QueryError";
+import { Badge } from "@/components/ui/Badge";
 
 const fmt = (n: number) =>
   new Intl.NumberFormat("en-ET", {
@@ -37,12 +33,7 @@ const fmt = (n: number) =>
   }).format(n);
 
 export default function OverviewPage() {
-  const {
-    data: dashboard,
-    isLoading,
-    error,
-    refetch,
-  } = useDashboard();
+  const { data: dashboard, isLoading, error, refetch } = useDashboard();
   const { data: recentCheckouts } = useCheckouts({ page: 1, pageSize: 5 });
   const { data: recentDeposits } = useDeposits({ page: 1, pageSize: 5 });
 
@@ -169,9 +160,7 @@ export default function OverviewPage() {
           <Card
             key={s.label}
             className={`rounded-2xl border-border/80 shadow-sm transition-all hover:border-primary/15 hover:shadow-md ${
-              s.alert
-                ? "border-destructive/35 bg-destructive/6"
-                : "bg-card"
+              s.alert ? "border-destructive/35 bg-destructive/6" : "bg-card"
             }`}
           >
             <CardContent className="p-5 sm:p-6">
@@ -218,7 +207,9 @@ export default function OverviewPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="overflow-hidden rounded-2xl border-border/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border/80 bg-muted/25 px-5 py-4">
-            <CardTitle className="text-sm font-semibold">Recent checkouts</CardTitle>
+            <CardTitle className="text-sm font-semibold">
+              Recent checkouts
+            </CardTitle>
             <Link
               href="/checkouts"
               className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
@@ -269,7 +260,9 @@ export default function OverviewPage() {
                       <TableCell className="py-3 text-sm font-semibold tabular-nums">
                         {fmt(chk.amount)}
                       </TableCell>
-                      <TableCell className="py-3">{getCheckoutBadge(chk.status)}</TableCell>
+                      <TableCell className="py-3">
+                        {getCheckoutBadge(chk.status)}
+                      </TableCell>
                       <TableCell className="py-3 text-right text-xs text-muted-foreground pr-5 tabular-nums">
                         {format(new Date(chk.createdAt), "MMM d, HH:mm")}
                       </TableCell>
@@ -283,7 +276,9 @@ export default function OverviewPage() {
 
         <Card className="overflow-hidden rounded-2xl border-border/80 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between border-b border-border/80 bg-muted/25 px-5 py-4">
-            <CardTitle className="text-sm font-semibold">Recent deposits</CardTitle>
+            <CardTitle className="text-sm font-semibold">
+              Recent deposits
+            </CardTitle>
             <Link
               href="/deposits"
               className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
@@ -334,7 +329,9 @@ export default function OverviewPage() {
                       <TableCell className="py-3 text-sm font-semibold tabular-nums">
                         {fmt(dep.amount)}
                       </TableCell>
-                      <TableCell className="py-3">{getDepositBadge(dep.status)}</TableCell>
+                      <TableCell className="py-3">
+                        {getDepositBadge(dep.status)}
+                      </TableCell>
                       <TableCell className="py-3 text-right text-xs text-muted-foreground pr-5 tabular-nums">
                         {format(new Date(dep.createdAt), "MMM d, HH:mm")}
                       </TableCell>
