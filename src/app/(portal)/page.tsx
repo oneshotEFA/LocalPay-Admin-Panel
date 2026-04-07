@@ -170,7 +170,7 @@ export default function OverviewPage() {
             key={s.label}
             className={`rounded-2xl border-border/80 shadow-sm transition-all hover:border-primary/15 hover:shadow-md ${
               s.alert
-                ? "border-destructive/35 bg-destructive/[0.06]"
+                ? "border-destructive/35 bg-destructive/6"
                 : "bg-card"
             }`}
           >

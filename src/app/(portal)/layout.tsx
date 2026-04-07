@@ -14,5 +14,5 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
     }
   }, [user, loading, router]);
 
-  return <PortalShell>{children}</PortalShell>;
+  return <PortalShell user={user}>{children}</PortalShell>;
 }

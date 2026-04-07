@@ -5,6 +5,7 @@ import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Tooltip from "@/components/ui/Tooltip";
+import { User } from "@supabase/supabase-js";
 
 const pageTitles: Record<string, string> = {
   "/": "Overview",
@@ -13,10 +14,17 @@ const pageTitles: Record<string, string> = {
   "/checkouts": "Checkouts",
   "/deposits": "Deposits",
   "/transactions": "Transactions",
+  "/integration": "Integration",
   "/settings": "Settings",
 };
 
-export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
+export function Topbar({
+  onOpenSidebar,
+  user,
+}: {
+  onOpenSidebar: () => void;
+  user: User | null;
+}) {
   const pathname = usePathname();
 
   const title =
@@ -56,7 +64,7 @@ export function Topbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
           </Button>
         </Tooltip>
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-[11px] font-bold text-primary-foreground ring-2 ring-background">
-          A
+          {user?.email?.split("@")[0]?.charAt(0).toUpperCase() || "A"}
         </div>
       </div>
     </header>
