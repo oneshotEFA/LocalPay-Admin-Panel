@@ -18,11 +18,11 @@ import {
   useDeleteAccount,
   useUpdateAccount,
 } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -32,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/Dialog";
 import { AccountsPageSkeleton } from "@/components/shared/skeletons";
 import { QueryError } from "@/components/shared/QueryError";
 import { PageHeader } from "@/components/shared/PageHeader";

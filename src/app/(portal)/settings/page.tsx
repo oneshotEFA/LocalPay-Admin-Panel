@@ -4,6 +4,17 @@ import { useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/Card";
+import { Button, buttonVariants } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
   ArrowUpRight,
   Loader2,
   Lock,
@@ -15,17 +26,6 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authProvider";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase/client";
 
 function profileDisplayName(u: User) {

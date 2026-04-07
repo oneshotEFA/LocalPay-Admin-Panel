@@ -13,7 +13,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "@/lib/api";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -32,9 +32,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+} from "@/components/ui/Dialog";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ListPageSkeleton } from "@/components/shared/skeletons";
 import { QueryError } from "@/components/shared/QueryError";

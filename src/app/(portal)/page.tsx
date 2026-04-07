@@ -15,7 +15,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/ui/Card";
 import {
   Table,
   TableBody,
@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/Badge";
 import { useDashboard, useCheckouts, useDeposits } from "@/lib/api";
 import { DashboardPageSkeleton } from "@/components/shared/skeletons";
 import { QueryError } from "@/components/shared/QueryError";
