@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { Bell, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Tooltip from "@/components/ui/Tooltip";
 
