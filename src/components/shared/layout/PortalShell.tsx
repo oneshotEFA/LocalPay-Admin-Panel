@@ -3,8 +3,14 @@
 import { type ReactNode, useState } from "react";
 import { Sidebar } from "@/components/shared/layout/Sidebar";
 import { Topbar } from "@/components/shared/layout/Topbar";
-import { User } from "@supabase/supabase-js";
-export function PortalShell({ children,user }: { children: ReactNode,user:User|null }) {
+import type { BetterAuthUser } from "@/lib/better-auth/types";
+export function PortalShell({
+  children,
+  user,
+}: {
+  children: ReactNode;
+  user: BetterAuthUser | null;
+}) {
   const [isNavOpen, setIsNavOpen] = useState(false);
 
   return (

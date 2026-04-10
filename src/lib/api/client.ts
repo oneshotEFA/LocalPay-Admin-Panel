@@ -1,4 +1,5 @@
-import { supabase } from "../supabase/client";
+import { betterAuthClient } from "@/lib/better-auth/client";
+import { clearAuthToken, getAuthToken } from "@/lib/better-auth/token";
 import type {
   ClientReceivingAccount,
   DepositRequest,
@@ -11,7 +12,7 @@ import type {
 } from "../types";
 
 /** Browser calls this app’s Route Handler; the server forwards to the real backend. */
-const GATEWAY_PREFIX = "/api/gateway";
+const GATEWAY_PREFIX = "/api/gateway-client";
 
 export class ApiError extends Error {
   constructor(
@@ -25,11 +26,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const token = session?.access_token;
+  const token = getAuthToken();
   const res = await fetch(`${GATEWAY_PREFIX}${path}`, {
     ...options,
     credentials: "include",
@@ -38,13 +35,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...(options.headers ?? {}),
       ...(token && { Authorization: `Bearer ${token}` }),
     },
+    cache: "no-store", // ✅ ADD THIS
   });
   if (res.status === 204) return undefined as T;
-  if (res.status == 401 || res.status == 403) {
-    await supabase.auth.signOut();
-    window.location.href = "/login";
-    return undefined as T;
-  }
+  // if (res.status == 401 || res.status == 403) {
+  //   clearAuthToken();
+  //   window.location.href = "/login";
+  //   return undefined as T;
+  // }
   if (!res.ok) {
     let code = "UNKNOWN_ERROR";
     let message = `HTTP ${res.status}`;
@@ -60,7 +58,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 function adminPath(path: string) {
-  return `/admin${path}`;
+  return `/${path}`;
 }
 
 function buildQuery(params: Record<string, string | number | undefined>) {
@@ -74,12 +72,27 @@ function buildQuery(params: Record<string, string | number | undefined>) {
 
 // Auth remains untouched for when the backend auth endpoints are ready.
 export const authApi = {
-  logout: async () => await supabase.auth.signOut(),
+  signInEmail: (email: string, password: string) =>
+    betterAuthClient.signInEmail(email, password),
 
-  me: () => request<{ id: string; name: string; clientId: string }>("/auth/me"),
+  signUpEmail: (input: { email: string; password: string; name?: string }) =>
+    betterAuthClient.signUpEmail(input),
 
-  refresh: () =>
-    request<{ accessToken: string }>("/auth/refresh", { method: "POST" }),
+  logout: async () => betterAuthClient.signOut(),
+
+  session: () => betterAuthClient.getSession(),
+
+  me: async () => {
+    const session = await betterAuthClient.getSession();
+    if (!session?.user) {
+      throw new ApiError(401, "UNAUTHENTICATED", "Not authenticated");
+    }
+    return {
+      id: session.user.id,
+      name: session.user.name ?? session.user.email,
+      clientId: session.user.clientId ?? "",
+    };
+  },
 };
 
 export interface ClientProfileResponse {
@@ -187,7 +200,9 @@ function normalizePaginatedResponse<T>(
     page,
     pageSize,
     hasMore:
-      typeof raw?.hasMore === "boolean" ? raw.hasMore || derivedHasMore : derivedHasMore,
+      typeof raw?.hasMore === "boolean"
+        ? raw.hasMore || derivedHasMore
+        : derivedHasMore,
   };
 }
 

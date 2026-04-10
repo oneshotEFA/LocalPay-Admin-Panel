@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import {
   Card,
@@ -26,16 +25,14 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/lib/authProvider";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { supabase } from "@/lib/supabase/client";
+import type { BetterAuthUser } from "@/lib/better-auth/types";
 
-function profileDisplayName(u: User) {
-  const meta = u.user_metadata as Record<string, unknown> | undefined;
-  if (typeof meta?.full_name === "string") return meta.full_name;
-  if (typeof meta?.name === "string") return meta.name;
+function profileDisplayName(u: BetterAuthUser) {
+  if (typeof u.name === "string" && u.name.trim()) return u.name;
   return u.email?.split("@")[0] ?? "";
 }
 
-function SettingsForm({ user }: { user: User }) {
+function SettingsForm({ user }: { user: BetterAuthUser }) {
   const [name, setName] = useState(() => profileDisplayName(user));
   const email = user.email ?? "";
   const [currentPassword, setCurrentPassword] = useState("");
@@ -53,18 +50,9 @@ function SettingsForm({ user }: { user: User }) {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) {
-        toast.error(
-          error.message || "You are not authenticated. Please reload.",
-        );
-        return;
-      }
-
-      toast.success("Password updated");
+      toast.error(
+        "Password updates aren’t wired to Better Auth yet. Add a backend endpoint and we’ll hook it up here.",
+      );
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");

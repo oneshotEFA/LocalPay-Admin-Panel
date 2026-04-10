@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { BrandLogo } from "@/components/shared/BrandLogo";
+import { authApi } from "@/lib/api/client";
+import { useAuth } from "@/lib/authProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,25 +25,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error || !data?.session) {
-        toast.error(
-          error?.message || "Invalid credentials provided.",
-        );
-        setError(error?.message || "Invalid credentials provided.");
-        return;
-      }
+      await authApi.signInEmail(email, password);
+      await refresh();
 
       toast.success("Signed in — redirecting…");
 
       router.push("/");
-    } catch {
-      toast.error("An unexpected error occurred during login.");
-      setError("An unexpected error occurred. Please try again.");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "An unexpected error occurred. Please try again.";
+      toast.error(message);
+      setError(message);
     } finally {
       setLoading(false);
     }
