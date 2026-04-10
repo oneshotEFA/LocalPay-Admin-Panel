@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL!;
 
+type RouteContext = {
+  params: { path: string[] } | Promise<{ path: string[] }>;
+};
+
 async function proxy(req: NextRequest, path: string[]) {
   const target = `${BACKEND}/api/gateway-client/${path.join("/")}${req.nextUrl.search}`;
 
@@ -33,15 +37,20 @@ async function proxy(req: NextRequest, path: string[]) {
   });
 }
 
-export async function GET(req: NextRequest, ctx: any) {
-  return proxy(req, (await ctx.params).path);
+async function getParamsPath(ctx: RouteContext): Promise<string[]> {
+  const params = await Promise.resolve(ctx.params);
+  return params.path;
 }
-export async function POST(req: NextRequest, ctx: any) {
-  return proxy(req, (await ctx.params).path);
+
+export async function GET(req: NextRequest, ctx: RouteContext) {
+  return proxy(req, await getParamsPath(ctx));
 }
-export async function PATCH(req: NextRequest, ctx: any) {
-  return proxy(req, (await ctx.params).path);
+export async function POST(req: NextRequest, ctx: RouteContext) {
+  return proxy(req, await getParamsPath(ctx));
 }
-export async function DELETE(req: NextRequest, ctx: any) {
-  return proxy(req, (await ctx.params).path);
+export async function PATCH(req: NextRequest, ctx: RouteContext) {
+  return proxy(req, await getParamsPath(ctx));
+}
+export async function DELETE(req: NextRequest, ctx: RouteContext) {
+  return proxy(req, await getParamsPath(ctx));
 }
