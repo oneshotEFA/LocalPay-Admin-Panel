@@ -95,6 +95,9 @@ export const authApi = {
   },
   changePassword: (currentPassword: string, newPassword: string) =>
     betterAuthClient.changePassword(currentPassword, newPassword),
+  disable2FA: (password: string) => betterAuthClient.disable2FA(password),
+  enable2FA: (password: string) => betterAuthClient.enable2FA(password),
+  verifyTOTP: (totpCode: string) => betterAuthClient.verifyTOTP(totpCode),
 };
 
 export interface ClientProfileResponse {

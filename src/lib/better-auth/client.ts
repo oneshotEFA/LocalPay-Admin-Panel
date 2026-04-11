@@ -153,4 +153,51 @@ export const betterAuthClient = {
 
     return inFlightSession;
   },
+  async refresh() {
+    // Clear cached session to force refetch. This is important after sign-in/sign-out.
+    lastSession = null;
+    return betterAuthClient.getSession();
+  },
+  async enable2FA(password: string) {
+    const res = await authFetch<{ totpURI: string; backupCodes: string[] }>(
+      `/two-factor/enable`,
+      {
+        method: "POST",
+        body: JSON.stringify({ password }),
+      },
+    );
+    if (!res.totpURI || !res.backupCodes) {
+      throw new BetterAuthError(
+        400,
+        "Failed to enable two-factor authentication",
+      );
+    }
+    return res;
+  },
+  async disable2FA(password: string) {
+    const res = await authFetch<{ status: boolean }>(`/two-factor/disable`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+    if (!res.status) {
+      throw new BetterAuthError(
+        400,
+        "Failed to disable two-factor authentication",
+      );
+    }
+    return res;
+  },
+  async verifyTOTP(code: string) {
+    const res = await authFetch<{ token: string; user: BetterAuthUser }>(
+      `/two-factor/verify-totp`,
+      {
+        method: "POST",
+        body: JSON.stringify({ code }),
+      },
+    );
+    if (!res.token || !res.user) {
+      throw new BetterAuthError(400, "Failed to verify TOTP code");
+    }
+    return res;
+  },
 };
