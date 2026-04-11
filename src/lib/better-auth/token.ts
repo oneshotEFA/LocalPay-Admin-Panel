@@ -24,19 +24,31 @@ export function getAuthToken(): string | null {
   return parseCookie(AUTH_TOKEN_COOKIE);
 }
 
-export function setAuthToken(token: string) {
+export function setAuthToken(
+  token: string,
+  opts?: {
+    emit?: boolean;
+  },
+) {
   if (!isBrowser()) return;
+  const existing = getAuthToken();
+  if (existing === token) return;
   const maxAge = 60 * 60 * 24 * 7; // 7 days
   document.cookie = `${AUTH_TOKEN_COOKIE}=${encodeURIComponent(
     token,
   )}; Path=/; Max-Age=${maxAge}; SameSite=Lax`;
-  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  if (opts?.emit !== false) {
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  }
 }
 
-export function clearAuthToken() {
+export function clearAuthToken(opts?: { emit?: boolean }) {
   if (!isBrowser()) return;
+  if (!getAuthToken()) return;
   document.cookie = `${AUTH_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
-  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  if (opts?.emit !== false) {
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+  }
 }
 
 export function onAuthChanged(cb: () => void) {
@@ -45,4 +57,3 @@ export function onAuthChanged(cb: () => void) {
   window.addEventListener(AUTH_CHANGED_EVENT, handler);
   return () => window.removeEventListener(AUTH_CHANGED_EVENT, handler);
 }
-

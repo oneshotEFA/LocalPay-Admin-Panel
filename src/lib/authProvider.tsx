@@ -16,29 +16,32 @@ const AuthContext = createContext<AuthContextType>({
   refresh: async () => {},
 });
 
+type AuthState = {
+  user: BetterAuthUser | null;
+  loading: boolean;
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  console.log("AuthProvider mounted");
-  const [user, setUser] = useState<BetterAuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [state, setState] = useState<AuthState>({ user: null, loading: true });
 
   useEffect(() => {
     let mounted = true;
-    const refresh = async () => {
+    const refreshOnce = async () => {
+      if (mounted) {
+        setState((prev) => ({ ...prev, loading: true }));
+      }
       try {
         const session = await betterAuthClient.getSession();
-        console.log("Auth session refreshed:", session);
         if (!mounted) return;
-        setUser(session?.user ?? null);
+        setState({ user: session?.user ?? null, loading: false });
       } catch {
         if (!mounted) return;
-        setUser(null);
-      } finally {
-        if (mounted) setLoading(false);
+        setState({ user: null, loading: false });
       }
     };
 
-    refresh();
-    const off = onAuthChanged(() => refresh());
+    refreshOnce();
+    const off = onAuthChanged(() => refreshOnce());
     return () => {
       mounted = false;
       off();
@@ -46,19 +49,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const refresh = async () => {
-    setLoading(true);
+    setState((prev) => ({ ...prev, loading: true }));
     try {
       const session = await betterAuthClient.getSession();
-      setUser(session?.user ?? null);
+      setState({ user: session?.user ?? null, loading: false });
     } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
+      setState({ user: null, loading: false });
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, refresh }}>
+    <AuthContext.Provider
+      value={{ user: state.user, loading: state.loading, refresh }}
+    >
       {children}
     </AuthContext.Provider>
   );

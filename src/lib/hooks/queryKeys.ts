@@ -4,6 +4,8 @@ import type {
   TransactionListParams,
 } from "@/lib/api/client";
 
+type BanksListParams = { countryCode?: string };
+
 export const queryKeys = {
   me: () => ["auth", "me"] as const,
   dashboard: () => ["dashboard"] as const,
@@ -22,5 +24,7 @@ export const queryKeys = {
   transaction: (id: string) => ["transactions", id] as const,
 
   accounts: () => ["accounts"] as const,
+  banks: (params?: BanksListParams) =>
+    params ? (["banks", params] as const) : (["banks"] as const),
   apiKeys: () => ["api-keys"] as const,
 };

@@ -57,12 +57,12 @@ async function proxy(req: NextRequest, path: string[]) {
     status: res.status,
   });
 
-  try {
-    const data = await cloned.json();
-    console.log("🔍 BACKEND RESPONSE:", data);
-  } catch {
-    console.log("⚠️ Response is not JSON");
-  }
+  // try {
+  //   const data = await cloned.json();
+  //   console.log("🔍 BACKEND RESPONSE:", data);
+  // } catch {
+  //   console.log("⚠️ Response is not JSON");
+  // }
   // Preserve content type for proper parsing on the client.
   const outContentType = res.headers.get("content-type");
   if (outContentType) out.headers.set("Content-Type", outContentType);

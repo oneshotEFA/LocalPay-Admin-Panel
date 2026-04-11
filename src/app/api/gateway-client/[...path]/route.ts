@@ -7,8 +7,10 @@ type RouteContext = {
 };
 
 async function proxy(req: NextRequest, path: string[]) {
-  const target = `${BACKEND}/api/gateway-client/${path.join("/")}${req.nextUrl.search}`;
-
+  const target = `${BACKEND}/gateway-client/${path.join("/")}${req.nextUrl.search}`;
+  console.log(
+    `Proxying request to gateway client backend: ${req.method} to ${target}`,
+  );
   const headers = new Headers();
   const auth = req.headers.get("authorization");
   if (auth) headers.set("Authorization", auth);

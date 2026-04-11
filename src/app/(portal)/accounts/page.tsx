@@ -11,12 +11,14 @@ import {
   CheckCircle2,
   Trash2,
 } from "lucide-react";
-import { PaymentMethod, type ClientReceivingAccount } from "@/lib/types";
+import { PaymentMethod } from "@/lib/types";
 import {
-  useAccounts,
+  useBanks,
   useCreateAccount,
   useDeleteAccount,
   useUpdateAccount,
+  type BankListItem,
+  type BankReceivingAccountSummary,
 } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -38,14 +40,6 @@ import { QueryError } from "@/components/shared/QueryError";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { WarningDialog } from "@/components/shared/WarningDialog";
 
-const BANK_NAMES: Record<PaymentMethod, string> = {
-  [PaymentMethod.CBE]: "Commercial Bank of Ethiopia",
-  [PaymentMethod.TELEBIRR]: "Telebirr",
-  [PaymentMethod.EBIRR]: "eBirr",
-  [PaymentMethod.ABYSSINIA]: "Bank of Abyssinia",
-  [PaymentMethod.NIB]: "Nib International Bank",
-};
-
 const BANK_COLORS: Record<PaymentMethod, string> = {
   [PaymentMethod.CBE]:
     "bg-blue-500/12 text-blue-700 dark:text-blue-400 border-blue-500/20",
@@ -65,38 +59,48 @@ function isPaymentMethod(value: string): value is PaymentMethod {
   return PAYMENT_METHODS.includes(value as PaymentMethod);
 }
 
+function paymentMethodFromParserKey(parserKey: string): PaymentMethod | null {
+  const normalized = parserKey.trim().toUpperCase();
+  return isPaymentMethod(normalized) ? normalized : null;
+}
+
+function bankReceivingAccountId(bank: BankListItem) {
+  return bank.receivingAccount?.id ?? null;
+}
+
 export default function AccountsPage() {
-  const { data, error, refetch, isPending } = useAccounts();
+  const { data, error, refetch, isPending } = useBanks();
   const createAccount = useCreateAccount();
   const updateAccount = useUpdateAccount();
   const deleteAccount = useDeleteAccount();
 
-  const accounts = data?.items ?? [];
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const banks = data?.items ?? [];
+  const [editingId, setEditingId] = useState<string | null>(null); // receivingAccount.id
   const [editForm, setEditForm] = useState({
     accountName: "",
     accountNumber: "",
   });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [accountToDelete, setAccountToDelete] = useState<string | null>(null);
-  const [newAccount, setNewAccount] = useState({
-    paymentMethod: PaymentMethod.CBE,
+  const [addForm, setAddForm] = useState({
+    bankId: "",
     accountName: "",
     accountNumber: "",
   });
 
-  const configuredMethods = accounts.map((a) => a.paymentMethod);
-  const availableMethods = Object.values(PaymentMethod).filter(
-    (m) => !configuredMethods.includes(m),
-  );
+  const addableBanks = banks.filter((bank) => {
+    if (bank.receivingAccount) return false;
+    return paymentMethodFromParserKey(bank.parserKey) != null;
+  });
 
-  const selectedPaymentMethod = availableMethods.includes(
-    newAccount.paymentMethod,
-  )
-    ? newAccount.paymentMethod
-    : (availableMethods[0] ?? PaymentMethod.CBE);
+  const selectedBankId =
+    addForm.bankId && addableBanks.some((b) => b.id === addForm.bankId)
+      ? addForm.bankId
+      : (addableBanks[0]?.id ?? "");
 
-  const startEdit = (acc: ClientReceivingAccount) => {
+  const selectedBank = banks.find((b) => b.id === selectedBankId) ?? null;
+
+  const startEdit = (acc: BankReceivingAccountSummary) => {
     setEditingId(acc.id);
     setEditForm({
       accountName: acc.accountName,
@@ -121,7 +125,7 @@ export default function AccountsPage() {
     }
   };
 
-  const toggleActive = async (acc: ClientReceivingAccount) => {
+  const toggleActive = async (acc: BankReceivingAccountSummary) => {
     try {
       await updateAccount.mutateAsync({ id: acc.id, isActive: !acc.isActive });
       toast.success(`Account ${!acc.isActive ? "enabled" : "disabled"}`);
@@ -133,20 +137,31 @@ export default function AccountsPage() {
   };
 
   const handleAdd = async () => {
-    if (!newAccount.accountName || !newAccount.accountNumber) {
+    if (!addForm.accountName || !addForm.accountNumber) {
       toast.error("Fill all fields");
       return;
     }
 
-    if (!isPaymentMethod(selectedPaymentMethod)) {
-      toast.error("Select a valid payment method");
+    if (!selectedBank) {
+      toast.error("Select a bank");
+      return;
+    }
+
+    if (selectedBank.receivingAccount) {
+      toast.error("This bank already has an account configured");
+      return;
+    }
+
+    const paymentMethod = paymentMethodFromParserKey(selectedBank.parserKey);
+    if (!paymentMethod) {
+      toast.error("This bank’s parser key isn’t supported by this portal yet");
       return;
     }
 
     const payload = {
-      paymentMethod: selectedPaymentMethod,
-      accountName: newAccount.accountName.trim(),
-      accountNumber: newAccount.accountNumber.trim(),
+      paymentMethod,
+      accountName: addForm.accountName.trim(),
+      accountNumber: addForm.accountNumber.trim(),
       isActive: true,
     };
 
@@ -154,8 +169,8 @@ export default function AccountsPage() {
       await createAccount.mutateAsync(payload);
       toast.success("Account added");
       setIsAddOpen(false);
-      setNewAccount({
-        paymentMethod: availableMethods[0] ?? PaymentMethod.CBE,
+      setAddForm({
+        bankId: "",
         accountName: "",
         accountNumber: "",
       });
@@ -185,21 +200,32 @@ export default function AccountsPage() {
     setIsAddOpen(open);
 
     if (open) {
-      setNewAccount((current) => ({
+      setAddForm((current) => ({
         ...current,
-        paymentMethod:
-          availableMethods.find((method) => method === current.paymentMethod) ??
-          availableMethods[0] ??
-          PaymentMethod.CBE,
+        bankId:
+          (current.bankId &&
+          addableBanks.some((bank) => bank.id === current.bankId)
+            ? current.bankId
+            : addableBanks[0]?.id ?? ""),
       }));
       return;
     }
 
-    setNewAccount({
-      paymentMethod: availableMethods[0] ?? PaymentMethod.CBE,
+    setAddForm({
+      bankId: "",
       accountName: "",
       accountNumber: "",
     });
+  };
+
+  const openAddForBank = (bankId: string) => {
+    setAddForm((current) => ({
+      ...current,
+      bankId,
+      accountName: "",
+      accountNumber: "",
+    }));
+    setIsAddOpen(true);
   };
 
   if (!data && isPending) {
@@ -209,7 +235,7 @@ export default function AccountsPage() {
   if (!data && error) {
     return (
       <QueryError
-        title="Couldn’t load accounts"
+        title="Couldn’t load banks"
         message="We couldn’t reach the server. Try again in a moment."
         onRetry={() => refetch()}
       />
@@ -227,7 +253,7 @@ export default function AccountsPage() {
               <Button
                 size="lg"
                 className="rounded-xl shadow-sm"
-                disabled={availableMethods.length === 0}
+                disabled={addableBanks.length === 0}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add account
@@ -242,22 +268,20 @@ export default function AccountsPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium">Payment Method</Label>
+                <Label className="text-sm font-medium">Bank</Label>
                 <select
                   className="flex h-9 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-1"
-                  value={selectedPaymentMethod}
+                  value={selectedBankId}
                   onChange={(e) =>
-                    setNewAccount((current) => ({
+                    setAddForm((current) => ({
                       ...current,
-                      paymentMethod: isPaymentMethod(e.target.value)
-                        ? e.target.value
-                        : current.paymentMethod,
+                      bankId: e.target.value,
                     }))
                   }
                 >
-                  {availableMethods.map((m) => (
-                    <option key={m} value={m}>
-                      {BANK_NAMES[m]}
+                  {addableBanks.map((bank) => (
+                    <option key={bank.id} value={bank.id}>
+                      {bank.name}
                     </option>
                   ))}
                 </select>
@@ -269,9 +293,9 @@ export default function AccountsPage() {
                 <Input
                   id="add-name"
                   placeholder="e.g. My Company PLC"
-                  value={newAccount.accountName}
+                  value={addForm.accountName}
                   onChange={(e) =>
-                    setNewAccount((current) => ({
+                    setAddForm((current) => ({
                       ...current,
                       accountName: e.target.value,
                     }))
@@ -286,9 +310,9 @@ export default function AccountsPage() {
                 <Input
                   id="add-number"
                   placeholder="e.g. 1000123456789"
-                  value={newAccount.accountNumber}
+                  value={addForm.accountNumber}
                   onChange={(e) =>
-                    setNewAccount((current) => ({
+                    setAddForm((current) => ({
                       ...current,
                       accountNumber: e.target.value,
                     }))
@@ -311,16 +335,24 @@ export default function AccountsPage() {
       />
 
       <div className="space-y-4">
-        {accounts.map((acc) => (
+        {banks.map((bank) => {
+          const acc = bank.receivingAccount;
+          const paymentMethod = paymentMethodFromParserKey(bank.parserKey);
+          const accountId = bankReceivingAccountId(bank);
+          const isEditing = !!accountId && editingId === accountId;
+          const canConfigure = !acc && paymentMethod != null;
+          return (
           <div
-            key={acc.id}
+            key={bank.id}
             className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors hover:border-primary/20"
           >
             <div className="flex flex-col sm:flex-row sm:items-start gap-4">
               <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${BANK_COLORS[acc.paymentMethod]}`}
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${
+                  paymentMethod ? BANK_COLORS[paymentMethod] : "bg-muted/40 text-muted-foreground border-border/70"
+                }`}
               >
-                {isMobile(acc.paymentMethod) ? (
+                {paymentMethod && isMobile(paymentMethod) ? (
                   <Smartphone className="h-5 w-5" />
                 ) : (
                   <Building2 className="h-5 w-5" />
@@ -330,28 +362,36 @@ export default function AccountsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm font-semibold text-foreground">
-                    {BANK_NAMES[acc.paymentMethod]}
+                    {bank.name}
                   </h3>
                   <Badge
                     variant="outline"
                     className={`px-1.5 text-[10px] font-medium shadow-none ${
-                      acc.isActive
+                      acc?.isActive
                         ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                         : "text-muted-foreground"
                     }`}
                   >
-                    {acc.isActive ? (
+                    {acc?.isActive ? (
                       <>
                         <CheckCircle2 className="w-2.5 h-2.5 mr-1 inline" />
                         Active
                       </>
-                    ) : (
+                    ) : acc ? (
                       "Inactive"
+                    ) : (
+                      "Not configured"
                     )}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className="px-1.5 text-[10px] font-medium shadow-none text-muted-foreground"
+                  >
+                    {bank.parserKey}
                   </Badge>
                 </div>
 
-                {editingId === acc.id ? (
+                {acc && isEditing ? (
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs text-slate-500 mb-1 block">
@@ -384,7 +424,7 @@ export default function AccountsPage() {
                       />
                     </div>
                   </div>
-                ) : (
+                ) : acc ? (
                   <div className="flex flex-wrap gap-4 mt-1.5">
                     <span className="text-sm text-muted-foreground">
                       <span className="text-xs">Name </span>
@@ -396,22 +436,28 @@ export default function AccountsPage() {
                       {acc.accountNumber}
                     </span>
                   </div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    No receiving account configured for this bank.
+                  </p>
                 )}
               </div>
 
               <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-400">
-                    {acc.isActive ? "Active" : "Off"}
-                  </span>
-                  <Switch
-                    checked={acc.isActive}
-                    onCheckedChange={() => toggleActive(acc)}
-                    disabled={editingId === acc.id || updateAccount.isPending}
-                  />
-                </div>
+                {acc ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">
+                        {acc.isActive ? "Active" : "Off"}
+                      </span>
+                      <Switch
+                        checked={acc.isActive}
+                        onCheckedChange={() => toggleActive(acc)}
+                        disabled={isEditing || updateAccount.isPending}
+                      />
+                    </div>
 
-                {editingId === acc.id ? (
+                    {isEditing ? (
                   <div className="flex gap-2">
                     <Button
                       variant="ghost"
@@ -432,7 +478,7 @@ export default function AccountsPage() {
                       Save
                     </Button>
                   </div>
-                ) : (
+                    ) : (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
@@ -454,20 +500,34 @@ export default function AccountsPage() {
                       Delete
                     </Button>
                   </div>
+                    )}
+                  </>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openAddForBank(bank.id)}
+                    disabled={!canConfigure}
+                    className="h-8 border-slate-200 text-slate-600 hover:bg-slate-50 bg-white"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Configure
+                  </Button>
                 )}
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
 
-        {accounts.length === 0 && (
+        {banks.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border/80 bg-muted/15 py-16 text-center">
             <Building2 className="mx-auto mb-3 h-11 w-11 text-muted-foreground/35" />
             <p className="font-medium text-foreground text-sm">
-              No receiving accounts configured
+              No banks returned
             </p>
             <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto px-4">
-              Add bank accounts to start accepting deposits.
+              The server didn’t return any bank parser configs for this client.
             </p>
           </div>
         )}

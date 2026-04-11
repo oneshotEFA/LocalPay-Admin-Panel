@@ -256,6 +256,27 @@ export interface AccountMutationResponse {
   item: ClientReceivingAccount;
 }
 
+export interface BankReceivingAccountSummary {
+  id: string;
+  accountNumber: string;
+  accountName: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface BankListItem {
+  id: string;
+  name: string;
+  parserKey: string;
+  receivingAccount: BankReceivingAccountSummary | null;
+}
+
+export interface BanksListResponse {
+  countryCode: string;
+  total: number;
+  items: BankListItem[];
+}
+
 type RawReceipt = Receipt;
 type RawCrawlResult = CrawlResult;
 type RawVerification = Verification;
@@ -362,6 +383,11 @@ export const accountsApi = {
     request<AccountMutationResponse>(adminPath(`/accounts/${id}`), {
       method: "DELETE",
     }),
+};
+
+export const banksApi = {
+  list: (params: { countryCode?: string } = {}, _clientId?: string) =>
+    request<BanksListResponse>(`${adminPath("/banks")}${buildQuery(params)}`),
 };
 
 export const checkoutsApi = {

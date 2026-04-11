@@ -21,6 +21,9 @@ export type BetterAuthSessionResponse =
   | {
       user: BetterAuthUser;
       token?: string;
+      session?: {
+        token?: string;
+      } | null;
     }
   | {
       session: {
@@ -28,4 +31,3 @@ export type BetterAuthSessionResponse =
         token?: string;
       } | null;
     };
-
