@@ -10,12 +10,10 @@ const AUTH_PREFIX = "/api/auth";
 type NormalizedSession = { user: BetterAuthUser; token?: string } | null;
 
 let inFlightSession: Promise<NormalizedSession> | null = null;
-let lastSession:
-  | {
-      at: number;
-      value: NormalizedSession;
-    }
-  | null = null;
+let lastSession: {
+  at: number;
+  value: NormalizedSession;
+} | null = null;
 
 export class BetterAuthError extends Error {
   constructor(
@@ -86,23 +84,35 @@ export const betterAuthClient = {
 
   async signOut() {
     const token = getAuthToken();
-    try {
-      await authFetch(`/sign-out`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        cache: "no-store",
-      });
-    } catch {
-      // Best-effort sign-out; always clear local token.
-    } finally {
-      clearAuthToken();
-    }
+    await authFetch(`/sign-out`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+    });
   },
 
+  async changePassword(currentPassword: string, newPassword: string) {
+    const token = getAuthToken();
+
+    const res = await authFetch<{ error: string | any }>(`/change-password`, {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      cache: "no-store",
+    });
+    if (res.error) {
+      throw new BetterAuthError(400, res.error);
+    }
+    return res;
+  },
   async getSession() {
     // Dedupe bursts (React StrictMode dev double-invokes effects + login triggers refresh).
     // This keeps the backend from seeing 4-5 identical /get-session calls.
@@ -112,26 +122,26 @@ export const betterAuthClient = {
     if (inFlightSession) return inFlightSession;
 
     inFlightSession = (async () => {
-    const raw = await authFetch<BetterAuthSessionResponse>(`/get-session`, {
-      method: "GET",
-    });
+      const raw = await authFetch<BetterAuthSessionResponse>(`/get-session`, {
+        method: "GET",
+      });
 
-    // Newer shape: `{ user, session }` (your backend example).
-    if ("user" in raw) {
-      const token = raw.token ?? raw.session?.token;
-      // Avoid emitting auth-change from a "read" call, otherwise AuthProvider
-      // can spin in a refresh loop and trigger backend throttling (429).
-      if (token) setAuthToken(token, { emit: false });
-      return token ? { user: raw.user, token } : { user: raw.user };
-    }
+      // Newer shape: `{ user, session }` (your backend example).
+      if ("user" in raw) {
+        const token = raw.token ?? raw.session?.token;
+        // Avoid emitting auth-change from a "read" call, otherwise AuthProvider
+        // can spin in a refresh loop and trigger backend throttling (429).
+        if (token) setAuthToken(token, { emit: false });
+        return token ? { user: raw.user, token } : { user: raw.user };
+      }
 
-    // Older shape: `{ session: { user, token } }`.
-    const session = raw.session ?? null;
-    if (!session) return null;
-    if (session.token) setAuthToken(session.token, { emit: false });
-    return session.token
-      ? { user: session.user, token: session.token }
-      : { user: session.user };
+      // Older shape: `{ session: { user, token } }`.
+      const session = raw.session ?? null;
+      if (!session) return null;
+      if (session.token) setAuthToken(session.token, { emit: false });
+      return session.token
+        ? { user: session.user, token: session.token }
+        : { user: session.user };
     })()
       .then((value) => {
         lastSession = { at: Date.now(), value };

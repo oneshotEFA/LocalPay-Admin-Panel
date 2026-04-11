@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/authProvider";
 import { PageHeader } from "@/components/shared/PageHeader";
 import type { BetterAuthUser } from "@/lib/better-auth/types";
+import { authApi } from "@/lib/api";
 
 function profileDisplayName(u: BetterAuthUser) {
   if (typeof u.name === "string" && u.name.trim()) return u.name;
@@ -40,7 +41,14 @@ function SettingsForm({ user }: { user: BetterAuthUser }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-
+  // For 2FA enable/disable flow
+  const [password, setPassword] = useState("");
+  const [step, setStep] = useState<0 | 1 | 2>(0); // 0: initial, 1: password for enable/disable, 2: verify TOTP (for enable)
+  const [actionError, setActionError] = useState("");
+  const [totpInfo, setTotpInfo] = useState<{
+    totpURI: string;
+    backupCodes: string[];
+  } | null>(null);
   const handlePasswordUpdate = async () => {
     setChangingPassword(true);
     if (newPassword !== confirmPassword) {
@@ -48,11 +56,13 @@ function SettingsForm({ user }: { user: BetterAuthUser }) {
       setChangingPassword(false);
       return;
     }
-
     try {
-      toast.error(
-        "Password updates aren’t wired to Better Auth yet. Add a backend endpoint and we’ll hook it up here.",
-      );
+      const res = await authApi.changePassword(currentPassword, newPassword);
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Password updated successfully");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -66,6 +76,7 @@ function SettingsForm({ user }: { user: BetterAuthUser }) {
       setChangingPassword(false);
     }
   };
+    
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-2 duration-500">

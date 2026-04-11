@@ -93,6 +93,8 @@ export const authApi = {
       clientId: session.user.clientId ?? "",
     };
   },
+  changePassword: (currentPassword: string, newPassword: string) =>
+    betterAuthClient.changePassword(currentPassword, newPassword),
 };
 
 export interface ClientProfileResponse {
