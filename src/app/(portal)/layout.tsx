@@ -9,8 +9,11 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
+    if (loading) return; // wait until auth finishes
+
+    if (!user) {
+      console.log("User not authenticated, redirecting...");
+      router.replace("/login"); // better than push
     }
   }, [user, loading, router]);
 

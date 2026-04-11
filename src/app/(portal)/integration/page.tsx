@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   ChevronRight,
@@ -26,10 +26,12 @@ import { buttonVariants } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/Badge";
+import { useBanks } from "@/lib/hooks/useBanks";
 
 // ─── Utility Components ──────────────────────────────────────────────────────
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+
   return (
     <button
       onClick={() => {
@@ -125,17 +127,12 @@ function RepoFileLink({
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 export default function DhruIntegrationPage() {
+  const { data, error, refetch, isPending } = useBanks();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const availableBanks = data?.items ?? [];
   const repoBase =
     "https://github.com/oneshotEFA/LocalPay-Cpanel-Gateway-Scripts/blob/main";
-
-  const supportedBanks = [
-    "Commercial Bank of Ethiopia (CBE)",
-    "Telebirr",
-    "Bank of Abyssinia",
-    "NIB International Bank",
-    "eBirr / Hibret Bank",
-    "Dashen Bank (Amole)",
-  ];
 
   return (
     <div className="space-y-8 pb-16 animate-in fade-in duration-300">
@@ -160,15 +157,17 @@ export default function DhruIntegrationPage() {
         </div>
         <CardContent className="p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {supportedBanks.map((bank) => (
-              <div
-                key={bank}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-muted/20"
-              >
-                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                <span className="text-sm font-medium">{bank}</span>
-              </div>
-            ))}
+            {mounted &&
+              !isPending &&
+              availableBanks?.map((bank) => (
+                <div
+                  key={bank.id}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-muted/20"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <span className="text-sm font-medium">{bank.name}</span>
+                </div>
+              ))}
           </div>
         </CardContent>
       </Card>

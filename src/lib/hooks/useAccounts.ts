@@ -19,6 +19,7 @@ export function useCreateAccount() {
     mutationFn: (body: UpsertAccountBody) => accountsApi.create(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.accounts() });
+      qc.invalidateQueries({ queryKey: queryKeys.banks() });
       qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
     },
   });
@@ -31,6 +32,7 @@ export function useUpdateAccount() {
       accountsApi.update(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.accounts() });
+      qc.invalidateQueries({ queryKey: queryKeys.banks() });
       qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
     },
   });
@@ -42,6 +44,7 @@ export function useDeleteAccount() {
     mutationFn: (id: string) => accountsApi.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.accounts() });
+      qc.invalidateQueries({ queryKey: queryKeys.banks() });
       qc.invalidateQueries({ queryKey: queryKeys.dashboard() });
     },
   });

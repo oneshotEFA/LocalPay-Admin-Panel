@@ -5,7 +5,7 @@ import { Bell, Menu } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import Tooltip from "@/components/ui/Tooltip";
-import { User } from "@supabase/supabase-js";
+import type { BetterAuthUser } from "@/lib/better-auth/types";
 
 const pageTitles: Record<string, string> = {
   "/": "Overview",
@@ -23,7 +23,7 @@ export function Topbar({
   user,
 }: {
   onOpenSidebar: () => void;
-  user: User | null;
+  user: BetterAuthUser | null;
 }) {
   const pathname = usePathname();
 

@@ -7,4 +7,5 @@ export * from "./useCheckouts";
 export * from "./useDeposits";
 export * from "./useTransactions";
 export * from "./useAccounts";
+export * from "./useBanks";
 export * from "./useApiKeys";
