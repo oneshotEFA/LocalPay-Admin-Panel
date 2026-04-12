@@ -17,7 +17,14 @@ async function proxy(req: NextRequest, path: string[]) {
 
   const contentType = req.headers.get("content-type");
   if (contentType) headers.set("Content-Type", contentType);
-
+  const cookie = req.headers.get("cookie");
+  if (cookie) headers.set("Cookie", cookie);
+  const userAgent = req.headers.get("user-agent");
+  if (userAgent) headers.set("User-Agent", userAgent);
+  const accept = req.headers.get("accept");
+  if (accept) headers.set("Accept", accept);
+  const origin = req.headers.get("origin");
+  if (origin) headers.set("Origin", origin);
   const body =
     req.method !== "GET" && req.method !== "HEAD"
       ? await req.arrayBuffer()
