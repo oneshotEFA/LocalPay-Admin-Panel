@@ -39,6 +39,9 @@ async function proxy(req: NextRequest, path: string[]) {
   const accept = req.headers.get("accept");
   if (accept) headers.set("Accept", accept);
 
+  const origin = req.headers.get("origin");
+  if (origin) headers.set("Origin", origin);
+  
   const acceptLanguage = req.headers.get("accept-language");
   if (acceptLanguage) headers.set("Accept-Language", acceptLanguage);
 
