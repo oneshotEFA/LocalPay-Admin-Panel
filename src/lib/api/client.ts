@@ -423,6 +423,57 @@ export const depositsApi = {
     request<{ item: DepositDetailItem }>(adminPath(`/deposits/${id}`)),
 };
 
+export type SimulatePaymentRequest = {
+  apiKey: string;
+  apiSecret: string;
+  amount: number;
+  invoiceId: string;
+  productName: string;
+  successUrl: string;
+  cancelUrl: string;
+  failedUrl: string;
+  webhookUrl: string;
+};
+
+export type SimulatePaymentResponse =
+  | {
+      status: "success";
+      checkoutID: string;
+      checkoutUrl: string;
+      client: { id: string; slug: string; name: string };
+    }
+  | {
+      status: string;
+      checkoutID?: string;
+      checkoutUrl?: string;
+      client?: { id: string; slug: string; name: string };
+    };
+
+export const simulatePayment = async (data: SimulatePaymentRequest) => {
+  return request<SimulatePaymentResponse>("/gateway/simulate-payment", {
+    method: "POST",
+    body: JSON.stringify({
+      amount: data.amount,
+      api_key: data.apiKey,
+      api_secret: data.apiSecret,
+      product_name: data.productName,
+      invoice_id: data.invoiceId,
+
+      success_url: data.successUrl,
+      cancel_url: data.cancelUrl,
+      failed_url: data.failedUrl,
+      webhook_url: data.webhookUrl,
+
+      customer_name: "demo Doe",
+      customer_email: "demo@example.com",
+      userId: "demo",
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+};
 export const transactionsApi = {
   list: async (params: TransactionListParams = {}, _clientId?: string) =>
     normalizePaginatedResponse(
