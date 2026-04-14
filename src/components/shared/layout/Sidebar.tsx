@@ -12,6 +12,7 @@ import {
   Download,
   ArrowRightLeft,
   PlugZap,
+  FlaskConical,
   Settings,
   LogOut,
   Sparkles,
@@ -29,6 +30,7 @@ const mainNav = [
   { name: "Deposits", href: "/deposits", icon: Download },
   { name: "Transactions", href: "/transactions", icon: ArrowRightLeft },
   { name: "Integration", href: "/integration", icon: PlugZap },
+  { name: "Simulation", href: "/simulation", icon: FlaskConical },
 ];
 
 function NavLink({
