@@ -2,10 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND = process.env.NEXT_PUBLIC_API_URL!; // http://localhost:3000
 
-type RouteContext = {
-  params: { path: string[] } | Promise<{ path: string[] }>;
-};
-
 function getSetCookieHeaders(res: Response): string[] {
   const headersAny = res.headers as unknown as {
     getSetCookie?: () => string[];
@@ -78,20 +74,31 @@ async function proxy(req: NextRequest, path: string[]) {
   return out;
 }
 
-async function getParamsPath(ctx: RouteContext): Promise<string[]> {
-  const params = await Promise.resolve(ctx.params);
-  return params.path;
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  return proxy(req, path);
 }
-
-export async function GET(req: NextRequest, ctx: RouteContext) {
-  return proxy(req, await getParamsPath(ctx));
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  return proxy(req, path);
 }
-export async function POST(req: NextRequest, ctx: RouteContext) {
-  return proxy(req, await getParamsPath(ctx));
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  return proxy(req, path);
 }
-export async function PATCH(req: NextRequest, ctx: RouteContext) {
-  return proxy(req, await getParamsPath(ctx));
-}
-export async function DELETE(req: NextRequest, ctx: RouteContext) {
-  return proxy(req, await getParamsPath(ctx));
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> },
+) {
+  const { path } = await params;
+  return proxy(req, path);
 }
