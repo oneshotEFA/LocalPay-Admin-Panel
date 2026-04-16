@@ -35,14 +35,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...(options.headers ?? {}),
       ...(token && { Authorization: `Bearer ${token}` }),
     },
-    cache: "no-store", // ✅ ADD THIS
+    cache: "no-store", 
   });
   if (res.status === 204) return undefined as T;
-  // if (res.status == 401 || res.status == 403) {
-  //   clearAuthToken();
-  //   window.location.href = "/login";
-  //   return undefined as T;
-  // }
+  if (res.status == 401 || res.status == 403) {
+    clearAuthToken();
+    window.location.href = "/login";
+    return undefined as T;
+  }
   if (!res.ok) {
     let code = "UNKNOWN_ERROR";
     let message = `HTTP ${res.status}`;
