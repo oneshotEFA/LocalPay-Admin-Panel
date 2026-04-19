@@ -34,8 +34,10 @@ export default function LoginPage() {
 
     try {
       const res = await authApi.signInEmail(email, password);
-      if (res.user.role !== " CLIENT") {
-        toast.error("Access denied. Please use a client account.");
+      if (res.user.role !== "CLIENT") {
+        toast.error(
+          `Access denied. Please use a client account. you are: ${res.user.role}`,
+        );
         setError("Access denied. Please use a client account.");
         return;
       }
