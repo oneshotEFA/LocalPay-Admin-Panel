@@ -29,6 +29,8 @@ export default function LoginPage() {
   // Login Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
     setLoading(true);
     setError(null);
 
@@ -63,6 +65,8 @@ export default function LoginPage() {
   // OTP Verification Handler
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
     setVerifyError(null);
     setIsVerifying(true);
     try {
@@ -155,7 +159,7 @@ export default function LoginPage() {
                     Client portal access
                   </p>
                 </div>
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} noValidate className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -219,7 +223,7 @@ export default function LoginPage() {
                     Enter the code from your authenticator app
                   </p>
                 </div>
-                <form onSubmit={handleVerify} className="space-y-5">
+                <form onSubmit={handleVerify} noValidate className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="code">Authentication Code</Label>
                     <Input
