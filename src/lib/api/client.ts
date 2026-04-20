@@ -25,24 +25,36 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+interface RequestOptions extends RequestInit {
+  skipAuthRedirect?: boolean;
+}
+
+async function request<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const token = getAuthToken();
+  const { skipAuthRedirect, ...fetchOptions } = options;
+
   const res = await fetch(`${GATEWAY_PREFIX}${path}`, {
-    ...options,
+    ...fetchOptions,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers ?? {}),
       ...(token && { Authorization: `Bearer ${token}` }),
     },
-    cache: "no-store", 
+    cache: "no-store",
   });
+
   if (res.status === 204) return undefined as T;
-  if (res.status == 401 || res.status == 403) {
+
+  if ((res.status == 401 || res.status == 403) && !skipAuthRedirect) {
     clearAuthToken();
     window.location.href = "/login";
     return undefined as T;
   }
+
   if (!res.ok) {
     let code = "UNKNOWN_ERROR";
     let message = `HTTP ${res.status}`;
@@ -452,6 +464,7 @@ export type SimulatePaymentResponse =
 export const simulatePayment = async (data: SimulatePaymentRequest) => {
   return request<SimulatePaymentResponse>("/gateway/simulate-payment", {
     method: "POST",
+    skipAuthRedirect: true,
     body: JSON.stringify({
       amount: data.amount,
       api_key: data.apiKey,

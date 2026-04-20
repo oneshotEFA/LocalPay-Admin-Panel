@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -26,10 +26,15 @@ const initialState: FormState = {
 };
 
 export default function PaymentSimulationPage() {
+  const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState<FormState>(initialState);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -53,8 +58,11 @@ export default function PaymentSimulationPage() {
     return `INV-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
     const validationError = validateForm();
     if (validationError) {
@@ -92,10 +100,10 @@ export default function PaymentSimulationPage() {
         failedUrl: `${baseUrl}/simulation/failed?invoiceId=${encodeURIComponent(invoiceId)}`,
         webhookUrl: `${baseUrl}/api/simulation/webhook?invoiceId=${encodeURIComponent(invoiceId)}`,
       });
-
+      console.log("Simulation response:", data);
       setResponse(data);
 
-      if ("checkoutUrl" in data && data.checkoutUrl) {
+      if (data && "checkoutUrl" in data && data.checkoutUrl) {
         if ("checkoutID" in data && data.checkoutID) {
           sessionStorage.setItem(
             "simulation:lastCheckout",
@@ -127,7 +135,12 @@ export default function PaymentSimulationPage() {
       />
 
       <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm sm:p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          method={mounted ? "POST" : undefined}
+          action={mounted ? "javascript:void(0)" : undefined}
+          onSubmit={handleSubmit}
+          className="space-y-6"
+        >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">API Key</label>
@@ -213,7 +226,12 @@ export default function PaymentSimulationPage() {
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-            <Button type="submit" size="lg" disabled={loading} className="h-11">
+            <Button
+              type="submit"
+              size="lg"
+              disabled={loading}
+              className="h-11"
+            >
               {loading ? "Processing..." : "Pay Now"}
             </Button>
           </div>
