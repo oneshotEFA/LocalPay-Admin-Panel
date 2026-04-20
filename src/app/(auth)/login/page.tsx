@@ -16,7 +16,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { refresh } = useAuth();
 
-  // Logic States
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,20 +25,14 @@ export default function LoginPage() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
 
-  // Login Handler
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    e.stopPropagation();
-
     setLoading(true);
     setError(null);
-
     try {
       const res = await authApi.signInEmail(email, password);
       if (res.user.role !== "CLIENT") {
-        toast.error(
-          `Access denied. Please use a client account. you are: ${res.user.role}`,
-        );
+        toast.error(`Access denied. You are: ${res.user.role}`);
         setError("Access denied. Please use a client account.");
         return;
       }
@@ -62,11 +55,8 @@ export default function LoginPage() {
     }
   };
 
-  // OTP Verification Handler
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    e.stopPropagation();
-
     setVerifyError(null);
     setIsVerifying(true);
     try {
@@ -88,7 +78,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-background text-foreground">
-      {/* Sidebar Section */}
+      {/* Sidebar */}
       <div className="hidden lg:flex lg:w-104 xl:w-md bg-sidebar text-sidebar-foreground flex-col justify-between p-10 xl:p-12 relative overflow-hidden shrink-0 border-r border-sidebar-border">
         <div
           className="absolute inset-0 opacity-[0.06] dark:opacity-[0.12]"
@@ -97,13 +87,9 @@ export default function LoginPage() {
             backgroundSize: "28px 28px",
           }}
         />
-        <div className="relative flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <BrandLogo className="h-9 w-9 shrink-0 border-sidebar-border/80" />
-            <span className="font-semibold tracking-tight text-lg truncate">
-              LocalPay
-            </span>
-          </div>
+        <div className="relative flex items-center gap-2.5 min-w-0">
+          <BrandLogo className="h-9 w-9 shrink-0 border-sidebar-border/80" />
+          <span className="font-semibold tracking-tight text-lg truncate">LocalPay</span>
         </div>
         <div className="relative space-y-6">
           <div>
@@ -135,7 +121,7 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Main Content Section */}
+      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex justify-end p-4">
           <ThemeToggle />
@@ -143,7 +129,6 @@ export default function LoginPage() {
 
         <div className="flex-1 flex items-center justify-center p-6 -mt-10">
           <div className="w-full max-w-sm space-y-8">
-            {/* Mobile Logo */}
             <div className="lg:hidden flex items-center gap-2.5">
               <BrandLogo className="h-9 w-9 shrink-0" />
               <span className="font-semibold text-lg">LocalPay</span>
@@ -152,21 +137,16 @@ export default function LoginPage() {
             {step === 1 ? (
               <>
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">
-                    Sign in
-                  </h1>
-                  <p className="text-muted-foreground text-sm mt-1">
-                    Client portal access
-                  </p>
+                  <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
+                  <p className="text-muted-foreground text-sm mt-1">Client portal access</p>
                 </div>
-                <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
                       type="email"
                       autoComplete="email"
-                      required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="h-11 bg-background"
@@ -175,10 +155,7 @@ export default function LoginPage() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <Label htmlFor="password">Password</Label>
-                      <a
-                        href="#"
-                        className="text-xs text-primary font-medium hover:underline"
-                      >
+                      <a href="#" className="text-xs text-primary font-medium hover:underline">
                         Forgot password?
                       </a>
                     </div>
@@ -186,7 +163,6 @@ export default function LoginPage() {
                       id="password"
                       type="password"
                       autoComplete="current-password"
-                      required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-11 bg-background"
@@ -197,11 +173,7 @@ export default function LoginPage() {
                       {error}
                     </div>
                   )}
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full h-11"
-                  >
+                  <Button type="submit" disabled={loading} className="w-full h-11">
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -216,14 +188,12 @@ export default function LoginPage() {
             ) : (
               <>
                 <div>
-                  <h1 className="text-2xl font-semibold tracking-tight">
-                    Two-Factor Auth
-                  </h1>
+                  <h1 className="text-2xl font-semibold tracking-tight">Two-Factor Auth</h1>
                   <p className="text-muted-foreground text-sm mt-1">
                     Enter the code from your authenticator app
                   </p>
                 </div>
-                <form onSubmit={handleVerify} noValidate className="space-y-5">
+                <form onSubmit={handleVerify} className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="code">Authentication Code</Label>
                     <Input
@@ -232,22 +202,17 @@ export default function LoginPage() {
                       inputMode="numeric"
                       autoFocus
                       maxLength={6}
-                      required
                       value={code}
-                      onChange={(e) =>
-                        setCode(e.target.value.replace(/\D/g, ""))
-                      }
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                       className="h-14 text-center text-2xl tracking-[0.25em] font-mono bg-background"
                       placeholder="000000"
                     />
                   </div>
-
                   {verifyError && (
                     <div className="text-sm text-destructive bg-destructive/10 border border-destructive/25 rounded-lg px-3 py-2.5">
                       {verifyError}
                     </div>
                   )}
-
                   <div className="space-y-3">
                     <Button
                       type="submit"
