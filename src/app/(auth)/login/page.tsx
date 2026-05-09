@@ -244,7 +244,7 @@ export default function LoginPage() {
             <p className="text-xs text-center text-muted-foreground">
               Need integration help?{" "}
               <a
-                href="mailto:support@habeshatech.com"
+                href="mailto:efa.traww21@gmail.com"
                 className="text-foreground underline underline-offset-2 hover:text-primary"
               >
                 Contact support
